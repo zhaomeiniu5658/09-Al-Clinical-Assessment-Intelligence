@@ -1,0 +1,405 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>QC Task Detail - AI Clinical QC</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "error-container": "#ffdad6",
+                "on-primary": "#ffffff",
+                "on-tertiary-container": "#f39461",
+                "on-background": "#0b1c30",
+                "error": "#ba1a1a",
+                "on-error-container": "#93000a",
+                "inverse-on-surface": "#eaf1ff",
+                "surface": "#f8f9ff",
+                "surface-container-low": "#eff4ff",
+                "on-secondary-fixed-variant": "#3a485c",
+                "secondary-fixed-dim": "#b9c7e0",
+                "inverse-primary": "#b6c4ff",
+                "primary-fixed-dim": "#b6c4ff",
+                "on-primary-fixed": "#00164e",
+                "on-tertiary": "#ffffff",
+                "primary-container": "#1e3a8a",
+                "secondary-fixed": "#d5e3fd",
+                "tertiary-fixed": "#ffdbcb",
+                "outline-variant": "#c5c5d3",
+                "background": "#f8f9ff",
+                "surface-container-high": "#dce9ff",
+                "primary-fixed": "#dce1ff",
+                "surface-dim": "#cbdbf5",
+                "secondary-container": "#d5e3fd",
+                "outline": "#757682",
+                "on-surface": "#0b1c30",
+                "surface-tint": "#4059aa",
+                "on-secondary": "#ffffff",
+                "surface-container-highest": "#d3e4fe",
+                "on-primary-container": "#90a8ff",
+                "inverse-surface": "#213145",
+                "on-error": "#ffffff",
+                "tertiary": "#4b1c00",
+                "on-surface-variant": "#444651",
+                "on-tertiary-fixed-variant": "#773205",
+                "surface-bright": "#f8f9ff",
+                "on-secondary-container": "#57657b",
+                "on-secondary-fixed": "#0d1c2f",
+                "on-tertiary-fixed": "#341100",
+                "tertiary-fixed-dim": "#ffb691",
+                "tertiary-container": "#6e2c00",
+                "surface-container": "#e5eeff",
+                "primary": "#00236f",
+                "on-primary-fixed-variant": "#264191",
+                "secondary": "#515f74",
+                "surface-variant": "#d3e4fe",
+                "surface-container-lowest": "#ffffff"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "gutter": "1.5rem",
+                "entry-gap": "1.25rem",
+                "page-margin": "3rem",
+                "section-gap": "2rem",
+                "stack-tight": "0.25rem"
+        },
+        "fontFamily": {
+                "body-main": [
+                        "Inter"
+                ],
+                "headline-role": [
+                        "Inter"
+                ],
+                "label-caps": [
+                        "Inter"
+                ],
+                "headline-section": [
+                        "Inter"
+                ],
+                "body-meta": [
+                        "Inter"
+                ],
+                "display-name": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "body-main": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-role": [
+                        "16px",
+                        {
+                                "lineHeight": "22px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-caps": [
+                        "11px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-section": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-meta": [
+                        "12px",
+                        {
+                                "lineHeight": "18px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "display-name": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sidebar-menu-item {
+          transition: all 0.2s ease;
+        }
+        .sidebar-menu-item:hover, .sidebar-menu-item.active {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
+</style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-main antialiased h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<aside class="w-64 bg-[#1e3a8a] border-r border-[#e5e7eb] flex flex-col h-full z-10 shrink-0 text-white">
+<!-- Logo area -->
+<div class="h-16 flex items-center px-6 border-b border-[rgba(255,255,255,0.1)]">
+<div class="text-white text-2xl mr-2"><i class="fa-solid fa-brain"></i></div>
+<div>
+<h1 class="text-base font-bold text-white leading-tight">AI临床评估质控平台</h1>
+<p class="text-[10px] text-blue-200">AI Clinical QC Platform</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+<a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-table-cells-large w-5 text-center mr-3"></i> 工作台
+</a>
+<a class="sidebar-menu-item active flex items-center px-3 py-2.5 rounded text-sm font-medium text-white" href="#">
+<i class="fa-regular fa-clipboard w-5 text-center mr-3"></i> 质控任务
+</a>
+<a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-book w-5 text-center mr-3"></i> 知识库
+</a>
+<a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-user-group w-5 text-center mr-3"></i> 用户管理
+</a>
+<a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-gear w-5 text-center mr-3"></i> 系统设置
+</a>
+</nav>
+<!-- Bottom collapse -->
+<div class="p-4 border-t border-[rgba(255,255,255,0.1)]">
+<div class="flex items-center px-2">
+<div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white font-bold mr-3">
+    张
+  </div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-white leading-none">张医生</span>
+<span class="text-xs text-blue-200 mt-1">主治医师</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="bg-surface-container-lowest dark:bg-surface-dim docked full-width top-0 sticky border-b border-outline-variant dark:border-outline flex justify-between items-center w-full px-page-margin py-4 z-40">
+<div class="flex items-center gap-6">
+<a class="flex items-center gap-2 text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-all text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="arrow_back">arrow_back</span>
+                    返回任务列表
+                </a>
+<h1 class="font-headline-section text-headline-section font-bold text-primary">质控详情</h1>
+<span class="text-secondary text-sm ml-2">QC20240515001</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">search</span>
+<input class="pl-9 pr-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64" placeholder="搜索..." type="text">
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm overflow-hidden ring-2 ring-surface">
+
+</div>
+</div>
+</header>
+<!-- Scrollable Canvas -->
+<div class="flex-1 overflow-y-auto p-page-margin">
+<div class="flex flex-col gap-6 max-w-5xl mx-auto"><div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Patient Info Card -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant p-6 relative overflow-hidden">
+<div class="absolute right-0 top-0 w-32 h-32 bg-primary-container/5 rounded-bl-full -z-0"></div>
+<h2 class="font-headline-role text-headline-role text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined">person</span>
+                        患者基本信息
+                    </h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+<div>
+<div class="font-body-meta text-body-meta text-secondary mb-1">姓名</div>
+<div class="font-body-main text-body-main font-medium">李*明</div>
+</div>
+<div>
+<div class="font-body-meta text-body-meta text-secondary mb-1">患者ID</div>
+<div class="font-body-main text-body-main font-medium">P202405001</div>
+</div>
+<div class="md:col-span-2">
+<div class="font-body-meta text-body-meta text-secondary mb-1">创建时间</div>
+<div class="font-body-main text-body-main font-medium">2024-05-15 10:30:25</div>
+</div>
+</div>
+</div>
+<!-- Score Summary Card -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 flex flex-col justify-center items-center relative overflow-hidden">
+<div class="absolute -bottom-10 -right-10 w-40 h-40 bg-surface-variant/30 rounded-full blur-2xl"></div>
+<div class="text-center w-full z-10">
+<h2 class="font-body-meta text-body-meta text-secondary uppercase tracking-wider mb-2">AI质控得分</h2>
+<div class="text-5xl font-display-name text-primary mb-1">85</div>
+<div class="inline-block px-3 py-1 bg-surface-container-high text-primary-fixed-variant text-xs font-bold rounded-full mb-4">
+                            良好
+                        </div>
+<div class="flex justify-between w-full mt-4 pt-4 border-t border-outline-variant/50 px-4">
+<div class="text-center">
+<div class="font-body-meta text-body-meta text-secondary">医生评分</div>
+<div class="font-body-main text-body-main font-semibold">88</div>
+</div>
+<div class="text-center">
+<div class="font-body-meta text-body-meta text-secondary">AI评分</div>
+<div class="font-body-main text-body-main font-semibold">85</div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 flex flex-col">
+<div class="flex justify-between items-center">
+<h2 class="font-headline-role text-headline-role text-primary flex items-center gap-2">
+<span class="material-symbols-outlined">mic</span>
+                            录音分析
+                        </h2>
+<a href="#" class="text-primary hover:text-primary-fixed-variant text-sm font-medium flex items-center gap-1 transition-colors"><span class="material-symbols-outlined text-lg">description</span>查看转录文本</a></div>
+<div class="bg-surface-container-low/50 backdrop-blur-sm rounded-lg border border-outline-variant/50 p-4 mt-4">
+<div class="flex items-center justify-between mb-3">
+<span class="text-sm font-medium text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">audio_file</span>
+                                recording_session_01.mp3
+                            </span>
+<span class="text-xs text-secondary font-mono">00:00 / 12:45</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full bg-primary-container text-on-primary text-white flex items-center justify-center hover:bg-primary transition-colors shrink-0">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+<div class="flex-1 h-12 flex items-center gap-1 opacity-70">
+<div class="w-1 h-3 bg-primary rounded-full"></div>
+<div class="w-1 h-6 bg-primary rounded-full"></div>
+<div class="w-1 h-8 bg-primary rounded-full"></div>
+<div class="w-1 h-4 bg-primary rounded-full"></div>
+<div class="w-1 h-10 bg-primary rounded-full"></div>
+<div class="w-1 h-5 bg-primary rounded-full"></div>
+<div class="w-1 h-7 bg-primary rounded-full"></div>
+<div class="w-1 h-3 bg-outline rounded-full"></div>
+<div class="w-1 h-6 bg-outline rounded-full"></div>
+<div class="w-1 h-4 bg-outline rounded-full"></div>
+<div class="w-1 h-8 bg-outline rounded-full"></div>
+<div class="w-1 h-2 bg-outline rounded-full"></div>
+<div class="w-1 h-5 bg-outline rounded-full"></div>
+<div class="w-1 h-9 bg-outline rounded-full"></div>
+<div class="w-1 h-4 bg-outline rounded-full"></div>
+<div class="w-1 h-6 bg-outline rounded-full"></div>
+<div class="w-1 h-3 bg-outline rounded-full"></div>
+</div>
+</div>
+</div>
+</div><div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 flex flex-col">
+<h2 class="font-headline-role text-headline-role text-primary mb-6 flex items-center gap-2 border-b border-outline-variant/50 pb-4">
+<span class="material-symbols-outlined">analytics</span>
+                        量表打分详情
+                    </h2>
+<div class="space-y-6">
+<div>
+<h3 class="font-medium text-sm text-on-surface mb-3">评分维度对比</h3>
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left border-collapse">
+<thead class="bg-surface-container-low text-secondary text-xs uppercase"><tr class=""><th class="px-4 py-2 rounded-tl-lg font-medium">评估维度</th><th class="px-4 py-2 font-medium">医生打分</th><th class="px-4 py-2 font-medium">AI打分</th><th class="px-4 py-2 font-medium">AI评分依据</th><th class="px-4 py-2 rounded-tr-lg font-medium">AI质控评分</th></tr></thead>
+<tbody class="divide-y divide-outline-variant/50">
+<tr><td class="px-4 py-3 font-medium text-on-surface">病史采集</td><td class="px-4 py-3">25/30</td><td class="px-4 py-3">24/30</td><td class="px-4 py-3 text-on-surface-variant">未详细询问既往史</td><td class="px-4 py-3">80/100</td></tr>
+<tr><td class="px-4 py-3 font-medium text-on-surface">医患沟通</td><td class="px-4 py-3">28/30</td><td class="px-4 py-3">27/30</td><td class="px-4 py-3 text-on-surface-variant">解释术语不够通俗</td><td class="px-4 py-3">90/100</td></tr>
+<tr><td class="px-4 py-3 font-medium text-on-surface">诊疗计划</td><td class="px-4 py-3">35/40</td><td class="px-4 py-3">34/40</td><td class="px-4 py-3 text-on-surface-variant">用药建议不够详细</td><td class="px-4 py-3">85/100</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div>
+<h3 class="font-medium text-sm text-on-surface mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-sm">psychology</span>AI质控依据</h3>
+<div class="bg-surface-container-low/50 rounded-lg p-4 space-y-3 border border-outline-variant/30">
+<div>
+<div class="text-xs font-semibold text-primary mb-1">病史采集 (-6分)</div>
+<p class="text-sm text-on-surface-variant">医生询问了现病史，但未详细询问既往史和家族史，导致信息收集不够全面。</p>
+</div>
+<div class="border-t border-outline-variant/30 pt-3">
+<div class="text-xs font-semibold text-primary mb-1">医患沟通 (-3分)</div>
+<p class="text-sm text-on-surface-variant">整体态度良好，但在解释高血压成因时使用了少量专业术语，未进一步用通俗语言解释。</p>
+</div>
+<div class="border-t border-outline-variant/30 pt-3">
+<div class="text-xs font-semibold text-primary mb-1">诊疗计划 (-6分)</div>
+<p class="text-sm text-on-surface-variant">给出了用药建议，但未详细说明不良反应及生活方式干预的具体措施。</p>
+</div>
+</div>
+</div>
+</div>
+</div><div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6">
+<h2 class="font-headline-role text-headline-role text-primary mb-6 flex items-center gap-2 border-b border-outline-variant/50 pb-4">
+<span class="material-symbols-outlined">fact_check</span>
+                    人工审核详情
+                </h2>
+<div class="space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="flex items-start gap-3 p-4 border border-outline-variant/50 rounded-lg bg-surface-bright">
+<input checked="" class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox">
+<div>
+<div class="font-medium text-sm text-on-surface">病史采集完整性</div>
+<div class="text-xs text-secondary mt-1">评估医生是否详细询问了现病史、既往史等。</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-4 border border-outline-variant/50 rounded-lg bg-surface-bright">
+<input checked="" class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox">
+<div>
+<div class="font-medium text-sm text-on-surface">医患沟通态度</div>
+<div class="text-xs text-secondary mt-1">评估沟通是否耐心，有无使用专业术语导致理解困难。</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-4 border border-outline-variant/50 rounded-lg bg-surface-bright">
+<input class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox">
+<div>
+<div class="font-medium text-sm text-on-surface">用药指导规范性</div>
+<div class="text-xs text-secondary mt-1">评估是否明确告知用法用量及不良反应。</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-4 border border-outline-variant/50 rounded-lg bg-surface-bright">
+<input checked="" class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox">
+<div>
+<div class="font-medium text-sm text-on-surface">诊疗计划合理性</div>
+<div class="text-xs text-secondary mt-1">评估给出的后续复查或治疗建议是否符合规范。</div>
+</div>
+</div>
+</div>
+<div>
+<label class="block font-body-meta text-body-meta text-secondary mb-2">审核意见 (Comments)</label>
+<textarea class="w-full border border-outline-variant rounded-lg p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface-container-lowest" placeholder="请输入人工复核的具体意见..." rows="3"></textarea>
+</div>
+<div class="flex justify-end pt-4">
+<button class="px-6 py-2.5 bg-[#1E3A8A] text-white rounded-lg text-sm font-semibold hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">send</span>
+                            提交审核
+                        </button>
+</div>
+</div>
+</div></div>
+</div>
+</main>
+
+
+</body></html>

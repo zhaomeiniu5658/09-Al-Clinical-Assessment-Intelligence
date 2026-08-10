@@ -1,0 +1,364 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AI临床评估质控平台 - 质控任务列表</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style data-purpose="custom-styles">
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9ff;
+  }
+  .sidebar-menu-item {
+    transition: all 0.2s ease;
+  }
+  .sidebar-menu-item:hover, .sidebar-menu-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+  .status-badge {
+    padding: 2px 8px;
+    border-radius: 0.125rem;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .status-badge.completed { background-color: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+  .status-badge.pending { background-color: #fffbeb; color: #f59e0b; border: 1px solid #fde68a; }
+  .status-badge.analyzing { background-color: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+  
+  .score-badge {
+    padding: 2px 8px;
+    border-radius: 0.125rem;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .score-badge.excellent { background-color: #ecfdf5; color: #10b981; }
+  .score-badge.good { background-color: #eff6ff; color: #3b82f6; }
+  .score-badge.average { background-color: #fffbeb; color: #f59e0b; }
+  .score-badge.poor { background-color: #fef2f2; color: #ef4444; }
+
+  /* Custom scrollbar for table if needed */
+  .table-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .table-container::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 3px;
+  }
+</style>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#1e3a8a',
+          'primary-hover': '#172554',
+          bg: '#f8f9ff',
+          sidebar: '#1e3a8a',
+          heading: '#111827',
+          body: '#4b5563',
+          border: '#e5e7eb'
+        },
+        fontFamily: {
+          sans: ['Inter', 'sans-serif'],
+        }
+      }
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+</head>
+<body class="h-screen flex overflow-hidden text-[#111827]">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-sidebar border-r border-[#e5e7eb] flex flex-col h-full z-10 hidden md:flex shrink-0 text-white">
+<!-- Logo area -->
+<div class="h-16 flex items-center px-6 border-b border-[rgba(255,255,255,0.1)]">
+<div class="text-white text-2xl mr-2"><i class="fa-solid fa-brain"></i></div>
+<div>
+<h1 class="text-base font-bold text-white leading-tight">AI临床评估质控平台</h1>
+<p class="text-[10px] text-blue-200">AI Clinical QC Platform</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto"><a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-table-cells-large w-5 text-center mr-3"></i> 工作台
+      </a>
+<a class="sidebar-menu-item active flex items-center px-3 py-2.5 rounded text-sm font-medium text-white" href="#">
+<i class="fa-regular fa-clipboard w-5 text-center mr-3"></i> 质控任务
+      </a>
+<a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-book w-5 text-center mr-3"></i> 知识库
+      </a>
+<a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-user-group w-5 text-center mr-3"></i> 用户管理
+      </a><a class="sidebar-menu-item flex items-center px-3 py-2.5 rounded text-sm text-blue-100" href="#">
+<i class="fa-solid fa-gear w-5 text-center mr-3"></i> 系统设置
+      </a></nav>
+<!-- Bottom collapse -->
+<div class="p-4 border-t border-[rgba(255,255,255,0.1)]"><div class="flex items-center px-2">
+  <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white font-bold mr-3">
+    张
+  </div>
+  <div class="flex flex-col">
+    <span class="text-sm font-medium text-white leading-none">张医生</span>
+    <span class="text-xs text-blue-200 mt-1">主治医师</span>
+  </div>
+</div>
+
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content -->
+<main class="flex-1 flex flex-col h-full min-w-0 bg-bg">
+<!-- BEGIN: Header -->
+<header class="h-16 bg-white border-b border-[#e5e7eb] flex items-center justify-between px-6 shrink-0 z-10">
+<div class="flex items-center"><h2 class="text-lg font-bold text-[#111827] ml-4">质控任务列表</h2>
+<button class="text-[#4b5563] hover:text-[#111827] md:hidden mr-4">
+<i class="fa-solid fa-bars text-lg"></i>
+</button>
+</div>
+<div class="flex items-center space-x-6">
+<button class="text-[#4b5563] hover:text-[#111827] relative">
+<i class="fa-regular fa-bell text-lg"></i>
+<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">12</span>
+</button>
+<button class="text-[#4b5563] hover:text-[#111827]">
+<i class="fa-regular fa-circle-question text-lg"></i>
+</button>
+
+</div>
+</header>
+<!-- END: Header -->
+<!-- BEGIN: Page Content -->
+<div class="flex-1 overflow-auto p-6">
+<!-- Page Title & Action -->
+
+<!-- BEGIN: Filters -->
+<div class="bg-white p-5 rounded border border-[#e5e7eb] mb-4 shadow-sm">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end"><div>
+<label class="block text-sm font-medium text-[#4b5563] mb-1">任务编号</label>
+<input class="w-full rounded border-[#e5e7eb] shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-[#111827]" placeholder="请输入任务编号" type="text">
+</div>
+<div>
+<label class="block text-sm font-medium text-[#4b5563] mb-1">患者名称</label>
+<input class="w-full rounded border-[#e5e7eb] shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-[#111827]" placeholder="请输入患者名称" type="text">
+</div>
+<div>
+<label class="block text-sm font-medium text-[#4b5563] mb-1">量表类型</label>
+<select class="w-full rounded border-[#e5e7eb] shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-[#111827]">
+<option>请选择量表类型</option>
+<option>HAMD-17</option>
+<option>PHQ-9</option>
+<option>GAD-7</option>
+<option>MoCA</option>
+</select>
+</div>
+<div class="lg:col-span-2 flex items-end justify-end space-x-2">
+<button class="px-4 py-2 border border-[#e5e7eb] rounded text-sm font-medium text-[#4b5563] bg-white hover:bg-gray-50">
+              重置
+            </button>
+<button class="px-4 py-2 border border-transparent rounded text-sm font-medium text-white bg-primary hover:bg-primary-hover shadow-sm">
+              查询
+            </button>
+</div>
+<div>
+<label class="block text-sm font-medium text-[#4b5563] mb-1">任务状态</label>
+<select class="w-full rounded border-[#e5e7eb] shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-[#111827]">
+<option>请选择状态</option>
+<option>已完成</option>
+<option>待处理</option>
+<option>分析中</option>
+</select>
+</div>
+<div class="col-span-1 lg:col-span-2">
+<label class="block text-sm font-medium text-[#4b5563] mb-1">提交时间</label>
+<div class="flex items-center">
+<div class="relative flex-grow">
+<input class="w-full rounded border-[#e5e7eb] shadow-sm focus:border-primary focus:ring-primary sm:text-sm pl-3 pr-10 text-[#111827]" placeholder="开始日期 ~ 结束日期" type="text">
+<i class="fa-regular fa-calendar absolute right-3 top-2.5 text-[#4b5563]"></i>
+</div>
+</div>
+</div></div>
+</div>
+<!-- END: Filters -->
+<!-- BEGIN: Table Section -->
+<div class="bg-white rounded border border-[#e5e7eb] shadow-sm flex flex-col">
+<!-- Table Toolbar -->
+<div class="px-5 py-4 flex justify-between items-center border-b border-[#e5e7eb]">
+<div class="flex items-center space-x-4"><div class="text-sm text-[#4b5563]">共 128 条数据</div><button class="px-3 py-1.5 border border-[#e5e7eb] rounded text-sm text-[#4b5563] hover:bg-gray-50 flex items-center"><i class="fa-solid fa-download mr-1.5 text-[#4b5563]"></i> 导出</button></div>
+<div class="flex space-x-2">
+<button class="bg-primary hover:bg-primary-hover text-white px-4 py-1.5 rounded text-sm font-medium flex items-center shadow-sm"><i class="fa-solid fa-plus mr-2"></i> 新建质控任务</button>
+
+</div>
+</div>
+<!-- Table -->
+<div class="overflow-x-auto table-container">
+<table class="min-w-full divide-y divide-[#e5e7eb]">
+<thead class="bg-gray-50/50">
+<tr>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">任务编号</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">患者名称</th><th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">患者ID</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">量表类型</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">提交时间</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">医生评分</th><th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">AI评分</th><th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">AI质控得分</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">状态</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">创建人</th>
+<th class="px-6 py-3 text-left text-xs font-medium text-[#4b5563] tracking-wider" scope="col">操作</th>
+</tr>
+</thead>
+<tbody class="bg-white divide-y divide-[#e5e7eb]">
+<!-- Row 1 -->
+<tr class="hover:bg-gray-50/50">
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">QC20240515001</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">李*明</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">P202405001</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">HAMD-17</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">2024-05-15 10:30:25</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">88</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">85</td><td class="px-6 py-4 whitespace-nowrap">
+<span class="score-badge excellent"><span class="font-bold">85</span> 良好</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="status-badge completed">已完成</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">张医生</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<a class="text-primary hover:text-primary-hover mr-3" href="#">详情</a><a class="text-primary hover:text-primary-hover mr-3" href="#">审核</a>
+<button class="text-[#4b5563] hover:text-[#111827]"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-gray-50/50">
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">QC20240515002</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">张*华</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">P202404078</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">PHQ-9</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">2024-05-15 09:15:42</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">75</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">72</td><td class="px-6 py-4 whitespace-nowrap">
+<span class="score-badge average"><span class="font-bold">72</span> 中等</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="status-badge completed">已完成</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">张医生</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<a class="text-primary hover:text-primary-hover mr-3" href="#">详情</a><a class="text-primary hover:text-primary-hover mr-3" href="#">审核</a>
+<button class="text-[#4b5563] hover:text-[#111827]"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-gray-50/50">
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">QC20240515003</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">王*丽</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">P202404039</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">GAD-7</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">2024-05-15 08:45:10</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">68</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">65</td><td class="px-6 py-4 whitespace-nowrap">
+<span class="score-badge average"><span class="font-bold">65</span> 一般</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="status-badge pending">待处理</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">李医生</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<a class="text-primary hover:text-primary-hover mr-3" href="#">详情</a><a class="text-primary hover:text-primary-hover mr-3" href="#">审核</a>
+<button class="text-[#4b5563] hover:text-[#111827]"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-gray-50/50">
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">QC20240515004</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">陈*建</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">P202404012</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">MoCA</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">2024-05-14 16:20:33</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">92</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">90</td><td class="px-6 py-4 whitespace-nowrap">
+<span class="score-badge excellent"><span class="font-bold">90</span> 优秀</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="status-badge completed">已完成</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">刘医生</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<a class="text-primary hover:text-primary-hover mr-3" href="#">详情</a><a class="text-primary hover:text-primary-hover mr-3" href="#">审核</a>
+<button class="text-[#4b5563] hover:text-[#111827]"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-gray-50/50">
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">QC20240515005</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">刘*强</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">P202404005</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">HAMA</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">2024-05-14 14:10:18</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">82</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">78</td><td class="px-6 py-4 whitespace-nowrap">
+<span class="score-badge good"><span class="font-bold">78</span> 良好</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="status-badge completed">已完成</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">张医生</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<a class="text-primary hover:text-primary-hover mr-3" href="#">详情</a><a class="text-primary hover:text-primary-hover mr-3" href="#">审核</a>
+<button class="text-[#4b5563] hover:text-[#111827]"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-gray-50/50">
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">QC20240515006</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">赵*军</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">P202403098</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">HAMD-17</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">2024-05-14 11:05:56</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">62</td><td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">60</td><td class="px-6 py-4 whitespace-nowrap">
+<span class="score-badge poor"><span class="font-bold">60</span> 较差</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="status-badge analyzing">分析中</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-[#4b5563]">李医生</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+<a class="text-primary hover:text-primary-hover mr-3" href="#">详情</a><a class="text-primary hover:text-primary-hover mr-3" href="#">审核</a>
+<button class="text-[#4b5563] hover:text-[#111827]"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-5 py-4 flex items-center justify-between border-t border-[#e5e7eb]">
+<div class="flex items-center text-sm text-[#4b5563]">
+            共 128 条
+            <select class="ml-3 rounded border-[#e5e7eb] text-sm py-1 pl-2 pr-6 focus:ring-primary focus:border-primary text-[#111827]">
+<option>10条/页</option>
+<option>20条/页</option>
+<option>50条/页</option>
+</select>
+</div>
+<div class="flex items-center space-x-1">
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50" disabled="">
+<i class="fa-solid fa-chevron-left text-xs"></i>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-white text-sm">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50 text-sm">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50 text-sm">3</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50 text-sm">4</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50 text-sm">5</button>
+<span class="w-8 h-8 flex items-center justify-center text-[#4b5563]">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50 text-sm">13</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-[#e5e7eb] text-[#4b5563] hover:bg-gray-50">
+<i class="fa-solid fa-chevron-right text-xs"></i>
+</button>
+<div class="flex items-center ml-4 text-sm text-[#4b5563]">
+              跳至 <input class="w-12 mx-2 rounded border-[#e5e7eb] text-center text-sm py-1 focus:ring-primary focus:border-primary text-[#111827]" type="text" value="1"> 页
+            </div>
+</div>
+</div>
+</div>
+<!-- END: Table Section -->
+</div>
+<!-- END: Page Content -->
+</main>
+<!-- END: Main Content -->
+
+
+
+
+</body></html>
