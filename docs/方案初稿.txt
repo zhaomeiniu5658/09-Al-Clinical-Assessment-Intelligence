@@ -1,0 +1,204 @@
+# 单用户 AI 临床量表智能质控系统计划
+
+## Summary
+
+创建一个单用户版前后端分离系统：
+
+- 前端：`Vue3 + TypeScript + Element Plus + Vite`
+- 后端：`Python FastAPI + SQLAlchemy + Alembic + MySQL8`
+- 异步任务：`Celery + Redis`
+- 音频识别：讯飞 ASR
+- AI质控：按量表类型调用对应 Dify Workflow
+- 部署：`docker-compose`
+
+主界面为“质控列表”。用户通过弹窗上传音频并选择量表类型。后台先用讯飞 ASR 转录音频并单独保存转录文本，再调用 Dify 从转录文本中提炼医生评分、生成 AI评分和质控分析。列表操作区支持查看转录文本、医生评分、AI评分和人工审核复核。
+
+## Key Changes
+
+- 页面精简为：
+  - 登录页
+  - 质控列表页
+  - 上传音频解析弹窗
+  - 转录文本弹窗
+  - 医生评分弹窗
+  - AI评分弹窗
+  - 审核复核弹窗
+
+- 上传弹窗字段：
+  - 量表类型：`HAMD / HAMA / PHQ-9`
+  - 音频文件
+  - 不再手动填写医生评分
+
+- 质控列表字段：
+  - 任务编号
+  - 量表类型
+  - 原始音频文件名
+  - ASR状态 / AI质控状态 / 审核状态
+  - 医生评分
+  - AI评分
+  - 创建时间
+  - 操作：`查看`、`转录文本`、`医生评分`、`AI评分`、`审核`
+
+## Backend & Data Model
+
+- `users`
+  - 唯一用户账号、密码哈希、启用状态、创建时间
+
+- `assessment_tasks`
+  - 量表类型
+  - 原始音频路径、文件名、MIME类型、文件大小
+  - ASR识别文本
+  - 任务状态：`PENDING / RUNNING / COMPLETED / FAILED`
+  - 当前阶段：`ASR / QC`
+  - 审核状态：`UNREVIEWED / REVIEWED`
+  - 错误信息
+  - 创建时间、更新时间
+
+- `qc_results`
+  - 从转录文本提炼出的医生评分
+  - AI评分
+  - 评分依据
+  - 证据分析
+  - 错误原因
+  - 优化建议
+  - Dify原始响应
+
+- `review_records`
+  - 人工复核评分
+  - 复核原因
+  - 审核意见
+  - 审核时间
+
+## API Interfaces
+
+- `POST /api/v1/auth/login`
+  - 单用户登录，返回 JWT
+
+- `GET /api/v1/auth/me`
+  - 获取当前用户信息
+
+- `POST /api/v1/tasks`
+  - `multipart/form-data`
+  - 字段：`scale_type`、`audio_file`
+  - 保存音频后创建任务并投递后台处理
+
+- `GET /api/v1/tasks`
+  - 分页获取质控列表
+
+- `GET /api/v1/tasks/{task_id}`
+  - 获取任务详情、转录文本、医生评分、AI评分、质控分析和审核记录
+
+- `GET /api/v1/tasks/{task_id}/audio`
+  - 鉴权后播放或下载原始音频
+
+- `POST /api/v1/tasks/{task_id}/retry`
+  - 失败任务重试
+
+- `POST /api/v1/tasks/{task_id}/review`
+  - 提交人工复核评分、复核原因和审核意见
+  - 提交后任务审核状态变为 `REVIEWED`
+
+## ASR & Dify Flow
+
+- 后台流程：
+  - 创建任务：`PENDING`
+  - 开始讯飞 ASR：`RUNNING + ASR`
+  - ASR 成功：保存 `asr_text`
+  - 调用 Dify：`RUNNING + QC`
+  - Dify 成功：保存医生评分、AI评分和质控结果，任务变为 `COMPLETED`
+  - 任一步失败：任务变为 `FAILED`，保存错误信息
+
+- Dify Workflow 输入：
+  - `scale_type`
+  - `dialogue_text`
+
+- Dify Workflow 输出 JSON：
+  - `doctor_score`
+  - `ai_score`
+  - `scoring_basis`
+  - `evidence_analysis`
+  - `error_reason`
+  - `optimization_suggestion`
+
+- Dify API Key：
+  - `DIFY_HAMD_API_KEY`
+  - `DIFY_HAMA_API_KEY`
+  - `DIFY_PHQ9_API_KEY`
+
+## Frontend Behavior
+
+- 质控列表页：
+  - 顶部提供“上传音频解析”按钮
+  - 列表自动展示任务处理状态
+  - 对未完成任务定时刷新
+  - 完成后可分别查看转录文本、医生评分、AI评分和审核
+
+- 上传音频解析弹窗：
+  - 选择量表类型
+  - 上传常见音频格式：`mp3 / wav / m4a / aac / flac / ogg / webm / amr`
+  - 提交后关闭弹窗并刷新列表
+
+- 审核弹窗：
+  - 展示转录文本、医生评分、AI评分、评分依据、证据分析、错误原因、优化建议
+  - 支持人工修改复核评分
+  - 必填复核原因
+  - 可填写审核意见
+  - 提交后锁定为已审核状态
+
+## Docker & Config
+
+- `.env.example` 包含：
+  - `ADMIN_USERNAME`
+  - `ADMIN_PASSWORD`
+  - `JWT_SECRET_KEY`
+  - `MYSQL_*`
+  - `REDIS_URL`
+  - `STORAGE_DIR`
+  - `MAX_AUDIO_SIZE_MB`
+  - `DIFY_BASE_URL`
+  - `DIFY_HAMD_API_KEY`
+  - `DIFY_HAMA_API_KEY`
+  - `DIFY_PHQ9_API_KEY`
+  - `DIFY_TIMEOUT_SECONDS`
+  - `XFYUN_APP_ID`
+  - `XFYUN_API_KEY`
+  - `XFYUN_API_SECRET`
+  - `XFYUN_ASR_BASE_URL`
+
+- 服务：
+  - `mysql:8`
+  - `redis:7`
+  - `backend`
+  - `worker`
+  - `frontend`
+
+## Test Plan
+
+- 后端：
+  - 单用户登录成功/失败
+  - 未登录访问任务接口返回 401
+  - 上传音频创建任务
+  - 不支持格式和超大文件校验
+  - ASR成功后保存转录文本
+  - Dify成功后保存医生评分和AI评分
+  - ASR或Dify失败时任务进入 `FAILED`
+  - 人工审核可保存复核评分、原因和意见
+
+- 前端：
+  - 登录表单校验
+  - 上传弹窗校验
+  - 质控列表状态刷新
+  - 转录文本弹窗展示
+  - 医生评分弹窗展示
+  - AI评分弹窗展示
+  - 审核复核弹窗提交
+  - 失败任务重试
+
+## Assumptions
+
+- 系统只有一个用户，通过 `.env` 初始化账号密码。
+- 医生评分不由用户手动输入，而是从音频转录文本中由 Dify 提炼。
+- 原始音频和 ASR识别文本都必须保存。
+- 人工审核允许修改最终复核评分，并要求填写复核原因。
+- v1 使用本地磁盘保存音频文件。
+- v1 不实现多用户、多角色、多机构、多租户。
