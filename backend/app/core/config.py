@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "please-change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 12
+    remember_me_expire_days: int = 30
 
     mysql_host: str = "mysql"
     mysql_port: int = 3306
@@ -23,10 +24,9 @@ class Settings(BaseSettings):
     mysql_password: str = "clinical_qc_password"
     database_url: str | None = None
 
-    redis_url: str = "redis://redis:6379/0"
-
     storage_dir: str = "storage"
     max_audio_size_mb: int = 100
+    max_knowledge_file_size_mb: int = 20
 
     dify_openai_base_url: str = "https://api.dify.ai"
     dify_hamd_api_key: str = ""
@@ -64,8 +64,16 @@ class Settings(BaseSettings):
         return self.storage_path / "audio"
 
     @property
+    def knowledge_storage_path(self) -> Path:
+        return self.storage_path / "knowledge"
+
+    @property
     def max_audio_size_bytes(self) -> int:
         return self.max_audio_size_mb * 1024 * 1024
+
+    @property
+    def max_knowledge_file_size_bytes(self) -> int:
+        return self.max_knowledge_file_size_mb * 1024 * 1024
 
 
 @lru_cache

@@ -13,6 +13,7 @@
         <el-form-item label="密码" prop="password">
           <el-input v-model="form.password" size="large" type="password" autocomplete="current-password" show-password />
         </el-form-item>
+        <el-checkbox v-model="form.remember_me" class="remember-checkbox">记住密码</el-checkbox>
         <el-button class="login-button" type="primary" size="large" :loading="loading" @click="handleLogin">
           登录
         </el-button>
@@ -34,8 +35,9 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const form = reactive({
-  username: '',
-  password: ''
+  username: localStorage.getItem('remembered_username') || '',
+  password: '',
+  remember_me: localStorage.getItem('remember_login') === 'true'
 })
 
 const rules: FormRules = {
@@ -47,7 +49,14 @@ async function handleLogin() {
   await formRef.value?.validate()
   loading.value = true
   try {
-    await auth.login(form.username, form.password)
+    await auth.login(form.username, form.password, form.remember_me)
+    if (form.remember_me) {
+      localStorage.setItem('remembered_username', form.username)
+      localStorage.setItem('remember_login', 'true')
+    } else {
+      localStorage.removeItem('remembered_username')
+      localStorage.removeItem('remember_login')
+    }
     ElMessage.success('登录成功')
     await router.replace({ name: 'qc-list' })
     await nextTick()
@@ -59,3 +68,7 @@ async function handleLogin() {
   }
 }
 </script>
+
+<style scoped>
+.remember-checkbox { margin: -4px 0 18px; }
+</style>

@@ -6,7 +6,7 @@
 
 - 前端：`Vue3 + TypeScript + Element Plus + Vite`
 - 后端：`Python FastAPI + SQLAlchemy + Alembic + MySQL8`
-- 异步任务：`Celery + Redis`
+- 异步任务：`FastAPI BackgroundTasks`
 - 音频识别：讯飞 ASR
 - AI质控：按量表类型调用对应 Dify Workflow
 - 部署：`docker-compose`
@@ -152,7 +152,6 @@
   - `ADMIN_PASSWORD`
   - `JWT_SECRET_KEY`
   - `MYSQL_*`
-  - `REDIS_URL`
   - `STORAGE_DIR`
   - `MAX_AUDIO_SIZE_MB`
   - `DIFY_BASE_URL`
@@ -167,9 +166,7 @@
 
 - 服务：
   - `mysql:8`
-  - `redis:7`
   - `backend`
-  - `worker`
   - `frontend`
 
 ## Test Plan

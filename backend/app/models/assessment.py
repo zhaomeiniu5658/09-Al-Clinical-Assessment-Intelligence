@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -35,16 +35,16 @@ class AssessmentTask(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    scale_type: Mapped[ScaleType] = mapped_column(Enum(ScaleType), nullable=False, index=True)
+    scale_type: Mapped[ScaleType] = mapped_column(SAEnum(ScaleType), nullable=False, index=True)
     audio_path: Mapped[str] = mapped_column(String(512), nullable=False)
     audio_original_name: Mapped[str] = mapped_column(String(255), nullable=False)
     audio_mime_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
     audio_size: Mapped[int] = mapped_column(Integer, nullable=False)
     asr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False)
-    stage: Mapped[TaskStage | None] = mapped_column(Enum(TaskStage), nullable=True)
+    status: Mapped[TaskStatus] = mapped_column(SAEnum(TaskStatus), default=TaskStatus.PENDING, nullable=False)
+    stage: Mapped[TaskStage | None] = mapped_column(SAEnum(TaskStage), nullable=True)
     review_status: Mapped[ReviewStatus] = mapped_column(
-        Enum(ReviewStatus), default=ReviewStatus.UNREVIEWED, nullable=False
+        SAEnum(ReviewStatus), default=ReviewStatus.UNREVIEWED, nullable=False
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)

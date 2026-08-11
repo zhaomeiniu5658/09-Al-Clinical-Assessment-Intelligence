@@ -6,7 +6,7 @@
 
 - 前端：Vue3、TypeScript、Element Plus、Vite
 - 后端：FastAPI、SQLAlchemy、Alembic、MySQL8
-- 异步任务：Celery、Redis
+- 异步任务：FastAPI BackgroundTasks
 - AI 能力：Dify 大模型应用，调用协议为 OpenAI-compatible Chat Completions
 - ASR：讯飞录音文件转写 LFASR
 - 部署：Docker Compose
@@ -115,13 +115,6 @@ python -m venv .venv
 pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --reload
-```
-
-Worker：
-
-```bash
-cd backend
-celery -A app.tasks.celery_app.celery_app worker --loglevel=INFO
 ```
 
 前端：

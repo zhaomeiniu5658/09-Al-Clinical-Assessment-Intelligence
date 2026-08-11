@@ -3,12 +3,14 @@ import { apiClient } from './client'
 export interface LoginPayload {
   username: string
   password: string
+  remember_me?: boolean
 }
 
 export interface User {
   id: number
   username: string
   is_active: boolean
+  is_admin: boolean
 }
 
 export async function login(payload: LoginPayload) {

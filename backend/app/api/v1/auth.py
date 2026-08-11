@@ -23,7 +23,11 @@ def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> Tok
 
     token = create_access_token(
         subject=user.username,
-        expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
+        expires_delta=(
+            timedelta(days=settings.remember_me_expire_days)
+            if payload.remember_me
+            else timedelta(minutes=settings.access_token_expire_minutes)
+        ),
     )
     return TokenResponse(access_token=token)
 

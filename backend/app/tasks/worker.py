@@ -3,12 +3,11 @@ from sqlalchemy.orm import joinedload
 
 from app.db.session import SessionLocal
 from app.models.assessment import AssessmentTask, QcResult, TaskStage, TaskStatus
+from app.models.system import XfyunAsrSettings
 from app.services.ai_qc import DifyOpenAICompatibleQcService
 from app.services.xfyun_asr import XfyunAsrService
-from app.tasks.celery_app import celery_app
 
 
-@celery_app.task(name="process_assessment_task")
 def process_assessment_task(task_id: int) -> None:
     db = SessionLocal()
     try:
@@ -27,7 +26,8 @@ def process_assessment_task(task_id: int) -> None:
                 task.error_message = None
                 db.commit()
 
-                task.asr_text = XfyunAsrService().transcribe(task.audio_path, task.audio_original_name)
+                xfyun_settings = db.get(XfyunAsrSettings, 1)
+                task.asr_text = XfyunAsrService(xfyun_settings).transcribe(task.audio_path, task.audio_original_name)
                 db.commit()
 
             task.status = TaskStatus.RUNNING

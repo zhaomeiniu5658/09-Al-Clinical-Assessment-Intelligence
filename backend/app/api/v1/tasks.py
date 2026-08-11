@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
@@ -17,7 +17,7 @@ from app.tasks.worker import process_assessment_task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".webm", ".amr"}
+ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".webm", ".amr", ".mp4"}
 
 
 def _task_to_list_item(task: AssessmentTask) -> TaskListItem:
@@ -41,6 +41,7 @@ def _task_to_list_item(task: AssessmentTask) -> TaskListItem:
 
 @router.post("", response_model=TaskDetailResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
+    background_tasks: BackgroundTasks,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
     scale_type: ScaleType = Form(...),
@@ -78,7 +79,7 @@ async def create_task(
     db.commit()
     db.refresh(task)
 
-    process_assessment_task.delay(task.id)
+    background_tasks.add_task(process_assessment_task, task.id)
     return task
 
 
@@ -139,6 +140,7 @@ def get_audio(
 @router.post("/{task_id}/retry", response_model=TaskDetailResponse)
 def retry_task(
     task_id: int,
+    background_tasks: BackgroundTasks,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> AssessmentTask:
@@ -157,7 +159,7 @@ def retry_task(
     task.error_message = None
     db.commit()
     db.refresh(task)
-    process_assessment_task.delay(task.id)
+    background_tasks.add_task(process_assessment_task, task.id)
     return task
 
 
