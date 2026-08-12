@@ -17,7 +17,7 @@ from app.tasks.worker import process_assessment_task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".webm", ".amr", ".mp4"}
+ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".opus", ".m4a"}
 
 
 def _task_to_list_item(task: AssessmentTask) -> TaskListItem:

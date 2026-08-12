@@ -24,7 +24,18 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
-  if (to.name === 'login') return true
+  if (to.name === 'login') {
+    if (!auth.isAuthenticated) return true
+    if (!auth.user) {
+      try {
+        await auth.loadMe()
+      } catch {
+        auth.logout()
+        return true
+      }
+    }
+    return { name: 'qc-list' }
+  }
   if (!auth.isAuthenticated) return { name: 'login' }
   if (!auth.user) {
     try {

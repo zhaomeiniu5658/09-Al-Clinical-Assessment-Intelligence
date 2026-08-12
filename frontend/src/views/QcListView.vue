@@ -102,11 +102,11 @@
             <el-option label="HAMD" value="HAMD" /><el-option label="HAMA" value="HAMA" /><el-option label="PHQ-9" value="PHQ-9" />
           </el-select>
         </el-form-item>
-        <el-form-item label="医患对话音视频" prop="audio_file">
-          <el-upload drag :auto-upload="false" :limit="1" :on-change="handleAudioChange" :on-remove="handleAudioRemove" accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.webm,.amr,.mp4,audio/*,video/mp4">
+        <el-form-item label="医患对话音频" prop="audio_file">
+          <el-upload drag :auto-upload="false" :limit="1" :on-change="handleAudioChange" :on-remove="handleAudioRemove" accept=".mp3,.wav,.flac,.opus,.m4a,audio/mpeg,audio/wav,audio/flac,audio/ogg">
             <el-icon class="upload-icon"><UploadFilled /></el-icon>
-            <div class="el-upload__text">点击或拖拽音视频到此处</div>
-            <template #tip><div class="el-upload__tip">支持 mp3、wav、m4a、aac、flac、ogg、webm、amr、mp4；MP4 将自动提取音轨</div></template>
+            <div class="el-upload__text">点击或拖拽音频到此处</div>
+            <template #tip><div class="el-upload__tip">讯飞语音转写支持 wav、flac、opus、m4a、mp3；请上传音频文件，不支持 MP4 视频。</div></template>
           </el-upload>
         </el-form-item>
       </el-form>

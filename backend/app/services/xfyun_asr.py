@@ -3,11 +3,15 @@ import hashlib
 import hmac
 import json
 import os
+import secrets
+import string
 import subprocess
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
+from urllib.parse import quote_plus
 
 import httpx
 
@@ -16,10 +20,9 @@ from app.models.system import XfyunAsrSettings
 
 
 class XfyunAsrService:
-    """讯飞录音文件转写 LFASR 客户端。"""
+    """Xfyun ASR client for the recording-file transcription models."""
 
     chunk_size = 10 * 1024 * 1024
-    video_extensions = {".mp4"}
 
     def __init__(self, config: XfyunAsrSettings | None = None) -> None:
         self.app_id = config.app_id if config else settings.xfyun_app_id
@@ -32,20 +35,24 @@ class XfyunAsrService:
     def transcribe(self, audio_path: str, filename: str) -> str:
         path = Path(audio_path)
         if not path.exists():
-            raise FileNotFoundError("音频文件不存在")
+            raise FileNotFoundError("Audio file does not exist")
         if not all([self.app_id, self.api_key, self.api_secret]):
-            raise RuntimeError("未配置讯飞 ASR 认证信息")
+            raise RuntimeError("Xfyun ASR credentials are not configured")
 
         converted_path: Path | None = None
         source_path = path
         source_name = filename
-        if path.suffix.lower() in self.video_extensions:
-            converted_path = self._extract_audio(path)
+
+        if self._uses_spark_asr_endpoint():
+            converted_path = self._normalize_audio(path)
             source_path = converted_path
             source_name = f"{Path(filename).stem}.wav"
 
         try:
             with httpx.Client(timeout=60) as client:
+                if self._uses_spark_asr_endpoint():
+                    return self._transcribe_with_spark_asr(client, source_path, source_name)
+
                 order_id = self._prepare(client, source_path, source_name)
                 self._upload(client, order_id, source_path)
                 self._merge(client, order_id)
@@ -54,9 +61,14 @@ class XfyunAsrService:
             if converted_path:
                 converted_path.unlink(missing_ok=True)
 
+    def _uses_spark_asr_endpoint(self) -> bool:
+        legacy_markers = ("raasr.xfyun.cn", "/v2/api")
+        normalized_url = self.base_url.lower()
+        return not any(marker in normalized_url for marker in legacy_markers)
+
     @staticmethod
-    def _extract_audio(video_path: Path) -> Path:
-        descriptor, output_name = tempfile.mkstemp(prefix="asr-", suffix=".wav", dir=video_path.parent)
+    def _normalize_audio(source_path: Path) -> Path:
+        descriptor, output_name = tempfile.mkstemp(prefix="asr-", suffix=".wav", dir=source_path.parent)
         os.close(descriptor)
         output_path = Path(output_name)
         try:
@@ -65,7 +77,7 @@ class XfyunAsrService:
                     "ffmpeg",
                     "-y",
                     "-i",
-                    str(video_path),
+                    str(source_path),
                     "-vn",
                     "-ac",
                     "1",
@@ -81,13 +93,118 @@ class XfyunAsrService:
             )
         except FileNotFoundError as exc:
             output_path.unlink(missing_ok=True)
-            raise RuntimeError("服务器未安装 MP4 音轨提取组件") from exc
+            raise RuntimeError("ffmpeg is required to normalize audio before Xfyun ASR upload") from exc
 
         if result.returncode != 0 or not output_path.exists() or output_path.stat().st_size == 0:
             output_path.unlink(missing_ok=True)
-            detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "无法读取视频音轨"
-            raise RuntimeError(f"MP4 音轨提取失败: {detail}")
+            detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "unable to read audio"
+            raise RuntimeError(f"Audio normalization failed: {detail}")
         return output_path
+
+    def _transcribe_with_spark_asr(self, client: httpx.Client, path: Path, filename: str) -> str:
+        signature_random = self._signature_random()
+        upload_payload = self._spark_upload(client, path, filename, signature_random)
+        content = upload_payload.get("content") or {}
+        order_id = content.get("orderId")
+        if not order_id:
+            raise RuntimeError(f"Xfyun ASR upload did not return orderId: {upload_payload}")
+        return self._spark_poll_result(client, str(order_id), signature_random)
+
+    def _spark_upload(
+        self,
+        client: httpx.Client,
+        path: Path,
+        filename: str,
+        signature_random: str,
+    ) -> dict[str, Any]:
+        params = {
+            "appId": self.app_id,
+            "accessKeyId": self.api_key,
+            "dateTime": self._date_time(),
+            "signatureRandom": signature_random,
+            "fileSize": str(path.stat().st_size),
+            "fileName": filename,
+            "durationCheckDisable": "true",
+            "language": "autodialect",
+            "pd": "medical",
+            "audioMode": "fileStream",
+        }
+        signature = self._spark_signature(params)
+        headers = {
+            "Content-Type": "application/octet-stream",
+            "Content-Length": str(path.stat().st_size),
+            "signature": signature,
+        }
+        response = client.post(
+            f"{self.base_url}/v2/upload",
+            params=params,
+            headers=headers,
+            content=self._iter_file(path),
+        )
+        return self._spark_json(response)
+
+    def _spark_poll_result(self, client: httpx.Client, order_id: str, signature_random: str) -> str:
+        deadline = time.time() + self.timeout_seconds
+        while time.time() < deadline:
+            params = {
+                "accessKeyId": self.api_key,
+                "dateTime": self._date_time(),
+                "signatureRandom": signature_random,
+                "orderId": order_id,
+                "resultType": "transfer",
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "signature": self._spark_signature(params),
+            }
+            result = self._spark_json(
+                client.post(f"{self.base_url}/v2/getResult", params=params, headers=headers, json={})
+            )
+            content = result.get("content") or {}
+            order_info = content.get("orderInfo") or {}
+            status = str(order_info.get("status", ""))
+            if status == "4":
+                return self._parse_result_text(result)
+            if status == "-1":
+                raise RuntimeError(f"Xfyun ASR recognition failed: {result}")
+            time.sleep(settings.xfyun_poll_interval_seconds)
+        raise TimeoutError("Xfyun ASR recognition timed out")
+
+    @staticmethod
+    def _spark_json(response: httpx.Response) -> dict[str, Any]:
+        response.raise_for_status()
+        payload = response.json()
+        if str(payload.get("code", "")) != "000000":
+            raise RuntimeError(f"Xfyun ASR API error: {payload}")
+        return payload
+
+    def _spark_signature(self, params: dict[str, Any]) -> str:
+        pairs: list[str] = []
+        for key in sorted(params):
+            if key == "signature":
+                continue
+            value = params[key]
+            if value is None or value == "":
+                continue
+            pairs.append(f"{quote_plus(str(key))}={quote_plus(str(value))}")
+        base_string = "&".join(pairs)
+        digest = hmac.new(self.api_secret.encode("utf-8"), base_string.encode("utf-8"), hashlib.sha1).digest()
+        return base64.b64encode(digest).decode("utf-8")
+
+    @staticmethod
+    def _date_time() -> str:
+        return datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    @staticmethod
+    def _signature_random() -> str:
+        alphabet = string.ascii_letters + string.digits
+        return "".join(secrets.choice(alphabet) for _ in range(16))
+
+    @staticmethod
+    def _iter_file(path: Path) -> Iterable[bytes]:
+        with path.open("rb") as source:
+            while chunk := source.read(1024 * 1024):
+                yield chunk
 
     def _prepare(self, client: httpx.Client, path: Path, filename: str) -> str:
         params = self._signed_params(
@@ -101,7 +218,7 @@ class XfyunAsrService:
         data = self._post_form(client, "/prepare", params)
         order_id = data.get("data")
         if not order_id:
-            raise RuntimeError(f"讯飞 ASR prepare 未返回 orderId: {data}")
+            raise RuntimeError(f"Xfyun ASR prepare did not return orderId: {data}")
         return str(order_id)
 
     def _upload(self, client: httpx.Client, order_id: str, path: Path) -> None:
@@ -130,9 +247,9 @@ class XfyunAsrService:
                 result = self._post_form(client, "/getResult", self._signed_params({"orderId": order_id}))
                 return self._parse_result_text(result)
             if status in {"-1", "4"}:
-                raise RuntimeError(f"讯飞 ASR 识别失败: {progress}")
+                raise RuntimeError(f"Xfyun ASR recognition failed: {progress}")
             time.sleep(settings.xfyun_poll_interval_seconds)
-        raise TimeoutError("讯飞 ASR 识别超时")
+        raise TimeoutError("Xfyun ASR recognition timed out")
 
     def _post_form(
         self,
@@ -146,7 +263,7 @@ class XfyunAsrService:
         payload = response.json()
         code = str(payload.get("code", payload.get("ok", "0")))
         if code not in {"0", "000000", "true"}:
-            raise RuntimeError(f"讯飞 ASR 接口错误: {payload}")
+            raise RuntimeError(f"Xfyun ASR API error: {payload}")
         return payload
 
     def _signed_params(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -170,7 +287,12 @@ class XfyunAsrService:
 
     @staticmethod
     def _parse_result_text(result: dict[str, Any]) -> str:
-        data = result.get("data")
+        content = result.get("content")
+        if isinstance(content, dict) and content.get("orderResult") is not None:
+            data = content.get("orderResult")
+        else:
+            data = result.get("data")
+
         if isinstance(data, str):
             try:
                 parsed = json.loads(data)
@@ -208,7 +330,7 @@ class XfyunAsrService:
 
         text = "".join(pieces).strip()
         if not text:
-            raise ValueError(f"无法解析讯飞 ASR 结果: {result}")
+            raise ValueError(f"Unable to parse Xfyun ASR result: {result}")
         return text
 
     @staticmethod
@@ -223,4 +345,3 @@ class XfyunAsrService:
                     if word:
                         words.append(str(word))
         return words
-
