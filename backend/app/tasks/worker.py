@@ -44,6 +44,7 @@ def process_assessment_task(task_id: int) -> None:
                 qc_result.evidence_analysis = result.evidence_analysis
                 qc_result.error_reason = result.error_reason
                 qc_result.optimization_suggestion = result.optimization_suggestion
+                qc_result.item_results = result.item_results
                 qc_result.raw_response = result.raw_response
             else:
                 db.add(
@@ -55,6 +56,7 @@ def process_assessment_task(task_id: int) -> None:
                         evidence_analysis=result.evidence_analysis,
                         error_reason=result.error_reason,
                         optimization_suggestion=result.optimization_suggestion,
+                        item_results=result.item_results,
                         raw_response=result.raw_response,
                     )
                 )

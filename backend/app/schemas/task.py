@@ -13,6 +13,7 @@ class QcResultResponse(BaseModel):
     evidence_analysis: str | None
     error_reason: str | None
     optimization_suggestion: str | None
+    item_results: list[dict] | None = None
 
     model_config = {"from_attributes": True}
 

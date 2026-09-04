@@ -113,7 +113,7 @@
       <template #footer><el-button @click="uploadDialogVisible = false">取消</el-button><el-button type="primary" :loading="uploading" @click="submitUpload">提交解析</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="transcriptDialogVisible" title="转录文本" width="760px"><el-input :model-value="selectedTask?.asr_text || '暂无转录文本'" type="textarea" :rows="16" readonly /></el-dialog>
+    <el-dialog v-model="transcriptDialogVisible" title="转录文本" width="760px"><el-input :model-value="formatTranscript(selectedTask?.asr_text || '暂无转录文本')" type="textarea" :rows="16" readonly /></el-dialog>
 
     <el-dialog v-model="aiDialogVisible" title="AI 质控分析" width="800px">
       <template v-if="selectedTask?.qc_result">
@@ -126,7 +126,7 @@
     <el-dialog v-model="reviewDialogVisible" title="人工审核" width="860px">
       <template v-if="selectedTask">
         <div class="review-layout">
-          <section class="transcript-preview"><span>转录文本</span><p>{{ selectedTask.asr_text || '暂无转录文本' }}</p></section>
+          <section class="transcript-preview"><span>转录文本</span><p>{{ formatTranscript(selectedTask.asr_text || '暂无转录文本') }}</p></section>
           <el-form ref="reviewFormRef" :model="reviewForm" :rules="reviewRules" label-position="top">
             <el-form-item label="人工复核评分" prop="reviewed_score"><el-input-number v-model="reviewForm.reviewed_score" :min="0" :max="100" :precision="1" class="full-width" /></el-form-item>
             <el-form-item label="复核原因" prop="review_reason"><el-input v-model="reviewForm.review_reason" type="textarea" :rows="4" /></el-form-item>
@@ -240,6 +240,13 @@ function scoreText(score: number) { return score >= 90 ? '优秀' : score >= 75 
 function formatTaskCode(row: TaskListItem) { return `QC${new Date(row.created_at).toISOString().slice(0, 10).replace(/-/g, '')}${String(row.id).padStart(3, '0')}` }
 function formatScore(score: number | null) { return score === null || score === undefined ? '-' : String(score) }
 function formatTime(value: string) { return new Date(value).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-') }
+function formatTranscript(text: string): string {
+  if (!text) return text
+  return text
+    .replace(/([。！？；])\s*/g, '$1\n')
+    .replace(/\n{2,}/g, '\n')
+    .trim()
+}
 onMounted(async () => { await loadTasks(); timer = window.setInterval(() => { if (hasRunningTasks.value) loadTasks() }, 5000) })
 onBeforeUnmount(() => { if (timer) window.clearInterval(timer) })
 </script>

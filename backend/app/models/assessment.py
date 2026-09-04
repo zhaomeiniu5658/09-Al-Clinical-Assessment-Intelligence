@@ -78,6 +78,7 @@ class QcResult(Base):
     evidence_analysis: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     optimization_suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    item_results: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     raw_response: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

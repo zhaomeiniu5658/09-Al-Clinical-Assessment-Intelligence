@@ -11,6 +11,14 @@ export interface QcResult {
   evidence_analysis: string | null
   error_reason: string | null
   optimization_suggestion: string | null
+  item_results: QcItemResult[] | null
+}
+
+export interface QcItemResult {
+  hamd_item: string
+  doctor_score: number | null
+  ai_score: number | null
+  ai_scoring_basis: string | null
 }
 
 export interface ReviewRecord {
