@@ -7,10 +7,16 @@ import TaskDetailView from '../views/TaskDetailView.vue'
 import UsersView from '../views/UsersView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import PlatformHomeView from '../views/PlatformHomeView.vue'
+import PlatformLoginView from '../views/PlatformLoginView.vue'
+import PlatformResearchView from '../views/PlatformResearchView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/platform/login', name: 'platform-login', component: PlatformLoginView, meta: { publicPlatform: true } },
+    { path: '/platform', name: 'platform-home', component: PlatformHomeView, meta: { publicPlatform: true } },
+    { path: '/platform/research', name: 'platform-research', component: PlatformResearchView, meta: { publicPlatform: true } },
     { path: '/login', name: 'login', component: LoginView },
     { path: '/', name: 'qc-list', component: QcListView },
     { path: '/tasks/:id', name: 'task-detail', component: TaskDetailView },
@@ -24,6 +30,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  if (to.meta.publicPlatform) return true
   if (to.name === 'login') {
     if (!auth.isAuthenticated) return true
     if (!auth.user) {
