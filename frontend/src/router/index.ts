@@ -17,11 +17,11 @@ const router = createRouter({
     { path: '/platform', name: 'platform-home', component: PlatformHomeView, meta: { publicPlatform: true, platformShell: true } },
     { path: '/platform/research', name: 'platform-research', component: PlatformResearchView, meta: { publicPlatform: true, platformShell: true } },
     { path: '/login', name: 'login', component: PlatformLoginView, meta: { publicPlatform: true } },
-    { path: '/', name: 'qc-list', component: QcListView },
-    { path: '/tasks/:id', name: 'task-detail', component: TaskDetailView },
-    { path: '/settings', name: 'settings', component: SettingsView },
-    { path: '/users', name: 'users', component: UsersView, meta: { requiresAdmin: true } },
-    { path: '/knowledge', name: 'knowledge', component: KnowledgeView },
+    { path: '/', name: 'qc-list', component: QcListView, meta: { platformShell: true } },
+    { path: '/tasks/:id', name: 'task-detail', component: TaskDetailView, meta: { platformShell: true } },
+    { path: '/settings', name: 'settings', component: SettingsView, meta: { platformShell: true } },
+    { path: '/users', name: 'users', component: UsersView, meta: { requiresAdmin: true, platformShell: true } },
+    { path: '/knowledge', name: 'knowledge', component: KnowledgeView, meta: { platformShell: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { publicPlatform: true, platformShell: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]

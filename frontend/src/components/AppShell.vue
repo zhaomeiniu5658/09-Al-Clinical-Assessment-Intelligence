@@ -86,7 +86,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const sidebarCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true')
-const platformPage = props.platformPage ?? false
+const platformPage = props.platformPage ?? Boolean(route.meta.platformShell)
 
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
