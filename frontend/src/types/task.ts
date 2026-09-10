@@ -19,6 +19,7 @@ export interface QcItemResult {
   doctor_score: number | null
   ai_score: number | null
   ai_scoring_basis: string | null
+  difference?: number | null
 }
 
 export interface ReviewRecord {

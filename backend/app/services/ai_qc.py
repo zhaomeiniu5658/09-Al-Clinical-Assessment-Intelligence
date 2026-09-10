@@ -8,6 +8,7 @@ import httpx
 
 from app.core.config import settings
 from app.models.assessment import ScaleType
+from app.services.doctor_test import HAMD17_ITEMS
 
 
 @dataclass
@@ -20,27 +21,6 @@ class AiQcResult:
     optimization_suggestion: str | None
     item_results: list[dict[str, Any]]
     raw_response: dict[str, Any]
-
-
-HAMD17_ITEMS = [
-    "1.抑郁情绪（悲伤、无望、无助、无价值）",
-    "2.有罪感",
-    "3.自杀",
-    "4.入睡困难",
-    "5.睡眠不深",
-    "6.早醒",
-    "7.工作和活动",
-    "8.迟滞（指思维和言语缓慢，注意力难以集中，主动性减退）；",
-    "9.激越",
-    "10.精神性焦虑",
-    "11.躯体性焦虑（焦虑的生理症状，如口干、气促、消化不良、腹泻、腹部绞痛、嗳气、心悸、头痛、过度换气、叹气、尿频、出汗）",
-    "12.胃肠道症状",
-    "13.全身症状",
-    "14.性症状（性欲丧失、月经失调）",
-    "15.疑病",
-    "16.体重减轻",
-    "17.自知力",
-]
 
 
 class DifyOpenAICompatibleQcService:
@@ -257,7 +237,13 @@ class DifyOpenAICompatibleQcService:
             content = string_values[0] if string_values else None
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Dify Workflow 响应缺少可解析的输出文本")
-        return cls._parse_json_object(content), content.strip()
+        try:
+            return cls._parse_json_object(content), content.strip()
+        except ValueError:
+            table_rows = cls._parse_text_table(content)
+            if not table_rows:
+                raise
+            return {"item_results": table_rows, "evidence_analysis": content.strip()}, content.strip()
 
     @classmethod
     def _extract_json_content(cls, raw: dict[str, Any]) -> dict[str, Any]:
@@ -335,9 +321,45 @@ class DifyOpenAICompatibleQcService:
                         cls._first_value(row, "ai_score", "AI打分", "ai评分", "标准分")
                     ),
                     "ai_scoring_basis": cls._to_text(basis),
+                    "difference": cls._to_float_or_none(
+                        cls._first_value(row, "difference", "差异", "difference_value")
+                    ),
                 }
             )
         return normalized
+
+    @classmethod
+    def _parse_text_table(cls, content: str) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for raw_line in content.splitlines():
+            line = raw_line.strip().strip("|").strip()
+            if not line or "|" not in line:
+                continue
+            if set(line.replace("|", "").replace("-", "").replace(":", "").strip()) == set():
+                continue
+
+            columns = [column.strip() for column in line.split("|", 5)]
+            if len(columns) < 5 or not columns[0].isdigit():
+                continue
+            if columns[0] in {"项目编号", "编号"}:
+                continue
+
+            item_number = int(columns[0])
+            if item_number < 1 or item_number > len(HAMD17_ITEMS):
+                continue
+            item_name = columns[1] or HAMD17_ITEMS[item_number - 1]
+            if not re.match(r"^\s*\d{1,2}\s*[.、)]", item_name):
+                item_name = f"{item_number}.{item_name}"
+            rows.append(
+                {
+                    "hamd_item": item_name,
+                    "doctor_score": cls._to_float_or_none(columns[2]),
+                    "ai_score": cls._to_float_or_none(columns[3]),
+                    "ai_scoring_basis": columns[4] or None,
+                    "difference": cls._to_float_or_none(columns[5]) if len(columns) > 5 else None,
+                }
+            )
+        return rows
 
     @staticmethod
     def _first_value(row: dict[str, Any], *keys: str) -> Any:

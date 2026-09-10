@@ -40,7 +40,7 @@
 
         <section class="detail-card result-card">
           <div class="section-heading"><el-icon><DataAnalysis /></el-icon><h2>AI 质控分析</h2></div>
-          <el-table v-if="task.qc_result" class="qc-table" :data="qcItemRows" border>
+          <el-table class="qc-table" :data="qcItemRows" border>
             <el-table-column prop="hamd_item" label="HAM-D17项目" min-width="300" />
             <el-table-column label="评分员打分" width="120" align="center">
               <template #default="{ row }">{{ formatScore(row.doctor_score) }}</template>
@@ -51,8 +51,11 @@
             <el-table-column prop="ai_scoring_basis" label="AI打分依据" min-width="420">
               <template #default="{ row }"><span class="basis-text">{{ row.ai_scoring_basis || '-' }}</span></template>
             </el-table-column>
+            <el-table-column label="差异" width="90" align="center">
+              <template #default="{ row }">{{ formatScore(row.difference ?? null) }}</template>
+            </el-table-column>
           </el-table>
-          <el-empty v-else description="任务完成后将在这里展示 AI 质控分析" :image-size="78" />
+          <el-empty v-if="!qcItemRows.length" description="暂无量表项目数据" :image-size="78" />
         </section>
 
         <section class="detail-card review-card">
