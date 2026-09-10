@@ -50,9 +50,15 @@ docker compose up --build
 
 4. 访问：
 
-- 前端：http://localhost
+- 前端：http://localhost:8080
 - 后端健康检查：http://localhost:8000/health
 - OpenAPI：http://localhost:8000/docs
+
+运行数据均保存在项目目录中：MySQL 数据位于 `data/mysql`，上传文件位于 `data/storage`。迁移电脑时可直接复制整个项目目录。
+
+更完整的 Docker、数据库迁移和新电脑部署说明见 [`DOCKER部署.md`](DOCKER部署.md)。
+
+Dify 的独立 Docker 服务位于 [`dify/`](dify/)，管理台默认地址为 `http://localhost:8081`。
 
 ## Dify OpenAI-compatible 接口约定
 

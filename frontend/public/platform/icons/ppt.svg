@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="pptGradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5FA7FF"/>
+      <stop offset="1" stop-color="#2563E8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#pptGradient)"/>
+  <g stroke="#fff" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 17.5h16l6 6v23H21v-29Z"/>
+    <path d="M37 17.5v7h7"/>
+    <path d="M27 30h6.5c2.5 0 4.5 1.8 4.5 4s-2 4-4.5 4H27v-8Z"/>
+    <path d="M27 38v7M31.5 38v7"/>
+  </g>
+</svg>

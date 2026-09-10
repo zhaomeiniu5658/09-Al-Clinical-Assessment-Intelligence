@@ -32,7 +32,10 @@
         @click="openApp(app)"
       >
         <span class="app-card__icon"><img :src="`/platform/icons/${app.icon}`" :alt="`${app.name}图标`" /></span>
-        <strong>{{ app.name }}</strong>
+        <span class="app-card__copy">
+          <strong>{{ app.name }}</strong>
+          <small v-if="app.description">{{ app.description }}</small>
+        </span>
         <span class="app-card__arrow"><el-icon><ArrowRight /></el-icon></span>
       </button>
       <div v-if="filteredApps.length === 0" class="empty-apps">未找到匹配的平台应用</div>
@@ -55,6 +58,9 @@ type PlatformApp = {
   name: string
   tone: AppTone
   icon: string
+  description?: string
+  route?: string
+  url?: string
 }
 
 const searchText = ref('')
@@ -62,12 +68,14 @@ const router = useRouter()
 const apps: PlatformApp[] = [
   { name: '智核引擎AI', tone: 'blue', icon: 'ai.svg' },
   { name: '智能BI看板', tone: 'purple', icon: 'bi.svg' },
-  { name: '运营工作台', tone: 'teal', icon: 'ops.svg' },
+  { name: '市场调研汇总', tone: 'teal', icon: 'ops.svg' },
   { name: '医药BD交易商机', tone: 'orange', icon: 'bd.svg' },
-  { name: 'CNS领域商机挖掘', tone: 'cyan', icon: 'research.svg' },
+  { name: 'CNS商机挖掘', tone: 'cyan', icon: 'research.svg', route: 'platform-research' },
   { name: 'sCTMS', tone: 'purple', icon: 'sctms.svg' },
   { name: '药物警戒', tone: 'blue', icon: 'pv.svg' },
-  { name: '临床评估量表', tone: 'purple', icon: 'scale.svg' }
+  { name: '临床评估量表', tone: 'purple', icon: 'scale.svg' },
+  { name: '自由定制PPT', tone: 'blue', icon: 'ppt.svg' },
+  { name: 'Dify AI应用开发', tone: 'blue', icon: 'dify.svg', url: import.meta.env.VITE_DIFY_URL || 'http://localhost:8081' }
 ]
 
 const filteredApps = computed(() => {
@@ -76,8 +84,12 @@ const filteredApps = computed(() => {
 })
 
 function openApp(app: PlatformApp) {
-  if (app.name === 'CNS领域商机挖掘') {
-    router.push({ name: 'platform-research' })
+  if (app.route) {
+    router.push({ name: app.route })
+    return
+  }
+  if (app.url) {
+    window.open(app.url, '_blank', 'noopener,noreferrer')
     return
   }
   ElMessage.info(`${app.name} 页面正在建设中`)
@@ -157,7 +169,9 @@ function showUserMessage() {
 }
 
 .app-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(71, 113, 189, .12); }
+.app-card__copy { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
 .app-card strong { font-size: 20px; font-weight: 600; white-space: nowrap; }
+.app-card small { color: #7b91b8; font-size: 13px; line-height: 1.4; }
 .app-card__icon { display: grid; width: 76px; height: 76px; place-items: center; }
 .app-card__icon img { display: block; width: 64px; height: 64px; }
 .app-card__arrow { display: grid; width: 42px; height: 42px; place-items: center; justify-self: end; border-radius: 50%; font-size: 24px; }

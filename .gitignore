@@ -9,6 +9,20 @@ __pycache__/
 .venv/
 venv/
 storage/
+data/mysql/*
+data/storage/*
+!data/storage/.gitkeep
+
+# Dify local configuration and runtime data
+dify/.env
+dify/volumes/*
+!dify/volumes/sandbox/
+dify/volumes/sandbox/*
+!dify/volumes/sandbox/conf/
+dify/volumes/sandbox/conf/*
+!dify/volumes/sandbox/conf/config.yaml
+dify/nginx/ssl/*
+!dify/nginx/ssl/.gitkeep
 
 # Node
 node_modules/

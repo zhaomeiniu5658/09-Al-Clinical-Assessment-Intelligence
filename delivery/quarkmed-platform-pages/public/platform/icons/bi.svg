@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="biGradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B388FF"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#biGradient)"/>
+  <g stroke="#fff" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 46h27M20 46V20"/>
+    <path d="M25 46V34h5v12M33 46V27h5v19M41 46V20h5v26"/>
+  </g>
+</svg>
