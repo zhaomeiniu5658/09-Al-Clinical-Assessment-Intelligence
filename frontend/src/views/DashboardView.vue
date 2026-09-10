@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="工作台" subtitle="查看临床评估质控任务的实时进展">
+  <AppShell title="工作台" subtitle="查看临床评估质控任务的实时进展" platform-page>
     <section class="dashboard-header">
       <div><strong>任务概览</strong><span>数据来自当前登录账户</span></div>
       <el-button :icon="Refresh" :loading="loading" @click="loadOverview">刷新</el-button>
@@ -52,9 +52,11 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchDashboardOverview, type DashboardOverview, type DashboardRecentTask } from '../api/dashboard'
 import AppShell from '../components/AppShell.vue'
+import { useAuthStore } from '../stores/auth'
 import type { TaskStage, TaskStatus } from '../types/task'
 
 const router = useRouter()
+const auth = useAuthStore()
 const loading = ref(false)
 const overview = reactive<DashboardOverview>({ total_tasks: 0, pending_tasks: 0, running_tasks: 0, completed_tasks: 0, failed_tasks: 0, reviewed_tasks: 0, recent_tasks: [] })
 const completionRate = computed(() => overview.total_tasks ? Math.round((overview.completed_tasks / overview.total_tasks) * 100) : 0)
@@ -70,7 +72,9 @@ function statusText(status: TaskStatus, stage: TaskStage | null) { if (status ==
 function statusClass(status: TaskStatus) { return { PENDING: 'pending', RUNNING: 'running', COMPLETED: 'complete', FAILED: 'failed' }[status] }
 function formatTime(value: string) { return new Date(value).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-') }
 
-onMounted(loadOverview)
+onMounted(() => {
+  if (auth.isAuthenticated) loadOverview()
+})
 </script>
 
 <style scoped>

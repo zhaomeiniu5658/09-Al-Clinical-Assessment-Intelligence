@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import LoginView from '../views/LoginView.vue'
 import QcListView from '../views/QcListView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import TaskDetailView from '../views/TaskDetailView.vue'
@@ -15,15 +14,15 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/platform/login', name: 'platform-login', component: PlatformLoginView, meta: { publicPlatform: true } },
-    { path: '/platform', name: 'platform-home', component: PlatformHomeView, meta: { publicPlatform: true } },
-    { path: '/platform/research', name: 'platform-research', component: PlatformResearchView, meta: { publicPlatform: true } },
-    { path: '/login', name: 'login', component: LoginView },
+    { path: '/platform', name: 'platform-home', component: PlatformHomeView, meta: { publicPlatform: true, platformShell: true } },
+    { path: '/platform/research', name: 'platform-research', component: PlatformResearchView, meta: { publicPlatform: true, platformShell: true } },
+    { path: '/login', name: 'login', component: PlatformLoginView, meta: { publicPlatform: true } },
     { path: '/', name: 'qc-list', component: QcListView },
     { path: '/tasks/:id', name: 'task-detail', component: TaskDetailView },
     { path: '/settings', name: 'settings', component: SettingsView },
     { path: '/users', name: 'users', component: UsersView, meta: { requiresAdmin: true } },
     { path: '/knowledge', name: 'knowledge', component: KnowledgeView },
-    { path: '/dashboard', name: 'dashboard', component: DashboardView },
+    { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { publicPlatform: true, platformShell: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]
 })

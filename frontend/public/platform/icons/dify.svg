@@ -1,6 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-  <rect x="2" y="2" width="60" height="60" rx="18" fill="#fff"/>
-  <path d="M24 17.5h11.8c7.8 0 13.7 5.3 13.7 12.6 0 7.9-6 13.4-14.2 13.4H24V17.5Z" fill="#2563EB"/>
-  <path d="M24 17.5h6.8v26H24v-26Z" fill="#60A5FA"/>
-  <path d="M30.8 24.2h4.5c3.6 0 6.2 2.3 6.2 5.8 0 3.6-2.7 6-6.4 6h-4.3V24.2Z" fill="#fff"/>
+  <defs>
+    <linearGradient id="difyGradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6BB8FF"/>
+      <stop offset="1" stop-color="#2563FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#difyGradient)"/>
+  <g stroke="#fff" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m26.2 27.4 4.5 6.8M37.8 27.4l-4.5 6.8"/>
+    <rect x="17.5" y="18.5" width="12" height="10" rx="3.5"/>
+    <rect x="34.5" y="18.5" width="12" height="10" rx="3.5"/>
+    <rect x="26" y="35.5" width="12" height="10" rx="3.5"/>
+  </g>
+  <g fill="#fff">
+    <circle cx="23.5" cy="23.5" r="1.6"/>
+    <circle cx="40.5" cy="23.5" r="1.6"/>
+    <circle cx="32" cy="40.5" r="1.6"/>
+  </g>
 </svg>

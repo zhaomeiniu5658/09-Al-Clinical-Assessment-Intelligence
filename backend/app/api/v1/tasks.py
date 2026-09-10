@@ -18,6 +18,7 @@ from app.tasks.worker import process_assessment_task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".opus", ".m4a"}
+ALLOWED_DOCTOR_TEST_EXTENSIONS = {".csv", ".doc", ".docx", ".pdf", ".txt", ".xls", ".xlsx"}
 
 
 def _task_to_list_item(task: AssessmentTask) -> TaskListItem:
@@ -46,7 +47,19 @@ async def create_task(
     db: Annotated[Session, Depends(get_db)],
     scale_type: ScaleType = Form(...),
     audio_file: UploadFile = File(...),
+    doctor_test_file: UploadFile | None = File(None),
 ) -> AssessmentTask:
+    if (
+        settings.dify_protocol.lower() == "workflow"
+        and scale_type == ScaleType.HAMD
+        and settings.dify_workflow_require_doctor_test_file
+        and not doctor_test_file
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="当前 Dify Workflow 要求上传医生打分表，请使用 doctor_test_file 字段提交",
+        )
+
     suffix = Path(audio_file.filename or "").suffix.lower()
     if suffix not in ALLOWED_AUDIO_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不支持的音频格式")
@@ -65,6 +78,35 @@ async def create_task(
                 raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="音频文件过大")
             target.write(chunk)
 
+    doctor_test_path: Path | None = None
+    doctor_test_size: int | None = None
+    doctor_test_original_name: str | None = None
+    doctor_test_mime_type: str | None = None
+    if doctor_test_file and doctor_test_file.filename:
+        doctor_test_suffix = Path(doctor_test_file.filename).suffix.lower()
+        if doctor_test_suffix not in ALLOWED_DOCTOR_TEST_EXTENSIONS:
+            audio_path.unlink(missing_ok=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不支持的医生打分表格式")
+
+        doctor_test_storage_path = settings.storage_path / "doctor_tests"
+        doctor_test_storage_path.mkdir(parents=True, exist_ok=True)
+        doctor_test_path = doctor_test_storage_path / f"{uuid4().hex}{doctor_test_suffix}"
+        doctor_test_size = 0
+        with doctor_test_path.open("wb") as target:
+            while chunk := await doctor_test_file.read(1024 * 1024):
+                doctor_test_size += len(chunk)
+                if doctor_test_size > settings.max_knowledge_file_size_bytes:
+                    target.close()
+                    doctor_test_path.unlink(missing_ok=True)
+                    audio_path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail="医生打分表文件过大",
+                    )
+                target.write(chunk)
+        doctor_test_original_name = doctor_test_file.filename
+        doctor_test_mime_type = doctor_test_file.content_type
+
     task = AssessmentTask(
         owner_id=current_user.id,
         scale_type=scale_type,
@@ -72,6 +114,10 @@ async def create_task(
         audio_original_name=audio_file.filename or stored_name,
         audio_mime_type=audio_file.content_type,
         audio_size=size,
+        doctor_test_path=str(doctor_test_path) if doctor_test_path else None,
+        doctor_test_original_name=doctor_test_original_name,
+        doctor_test_mime_type=doctor_test_mime_type,
+        doctor_test_size=doctor_test_size,
         status=TaskStatus.PENDING,
         review_status=ReviewStatus.UNREVIEWED,
     )

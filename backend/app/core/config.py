@@ -28,11 +28,18 @@ class Settings(BaseSettings):
     max_audio_size_mb: int = 100
     max_knowledge_file_size_mb: int = 20
 
+    dify_protocol: str = "openai"
     dify_openai_base_url: str = "https://api.dify.ai"
     dify_hamd_api_key: str = ""
     dify_hama_api_key: str = ""
     dify_phq9_api_key: str = ""
     dify_openai_model: str = "dify"
+    dify_workflow_base_url: str = "https://api.dify.ai"
+    dify_workflow_api_key: str = ""
+    dify_workflow_user: str = "clinical-qc"
+    dify_workflow_dialog_input: str = "dialog"
+    dify_workflow_doctor_test_input: str = "doctor_test"
+    dify_workflow_require_doctor_test_file: bool = True
     dify_timeout_seconds: int = 120
 
     xfyun_app_id: str = ""

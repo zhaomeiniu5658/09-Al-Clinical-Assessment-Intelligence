@@ -35,7 +35,11 @@ def process_assessment_task(task_id: int) -> None:
             task.error_message = None
             db.commit()
 
-            result = DifyOpenAICompatibleQcService().run_qc(task.scale_type, task.asr_text or "")
+            result = DifyOpenAICompatibleQcService().run_qc(
+                task.scale_type,
+                task.asr_text or "",
+                doctor_test_path=task.doctor_test_path,
+            )
             if task.qc_result:
                 qc_result = task.qc_result
                 qc_result.doctor_score = result.doctor_score

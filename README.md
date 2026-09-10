@@ -1,13 +1,13 @@
 # AI临床量表智能质控系统
 
-单用户版临床量表智能质控系统。用户上传医患对话音频并选择量表类型，系统通过讯飞 ASR 转录文本，再通过 Dify 提供的 OpenAI 兼容接口提炼医生评分、生成 AI 评分和质控分析。
+单用户版临床量表智能质控系统。用户上传医患对话音频、量表类型和医生打分表，系统通过讯飞 ASR 转录文本，再通过 Dify Workflow 提炼医生评分、生成 AI 评分和质控分析。
 
 ## 技术栈
 
 - 前端：Vue3、TypeScript、Element Plus、Vite
 - 后端：FastAPI、SQLAlchemy、Alembic、MySQL8
 - 异步任务：FastAPI BackgroundTasks
-- AI 能力：Dify 大模型应用，调用协议为 OpenAI-compatible Chat Completions
+- AI 能力：Dify Workflow 或 OpenAI-compatible Chat Completions
 - ASR：讯飞录音文件转写 LFASR
 - 部署：Docker Compose
 
@@ -38,6 +38,11 @@ cp .env.example .env
 - `DIFY_HAMD_API_KEY`
 - `DIFY_HAMA_API_KEY`
 - `DIFY_PHQ9_API_KEY`
+- `DIFY_PROTOCOL=workflow`
+- `DIFY_WORKFLOW_BASE_URL`
+- `DIFY_WORKFLOW_API_KEY`
+- `DIFY_WORKFLOW_USER`
+- `DIFY_WORKFLOW_REQUIRE_DOCTOR_TEST_FILE`
 - `XFYUN_APP_ID`
 - `XFYUN_API_KEY`
 - `XFYUN_API_SECRET`
@@ -60,7 +65,27 @@ docker compose up --build
 
 Dify 的独立 Docker 服务位于 [`dify/`](dify/)，管理台默认地址为 `http://localhost:8081`。
 
-## Dify OpenAI-compatible 接口约定
+## Dify 接口约定
+
+### Workflow
+
+当前测试环境工作流地址为 `http://101.200.145.196:8888`，工作流输入为：
+
+- `dialog`：ASR 转录的对话文本
+- `doctor_test`：医生打分表文件
+
+后端调用：
+
+```text
+POST {DIFY_WORKFLOW_BASE_URL}/v1/workflows/run
+Authorization: Bearer <DIFY_WORKFLOW_API_KEY>
+```
+
+医生打分表会先通过 `/v1/files/upload` 上传，再以 `local_file` 引用传给工作流。API Key 只放在本地 `.env`，不要提交到 Git。
+
+创建任务接口新增可选字段 `doctor_test_file`；在当前远程工作流配置下，该字段对 HAMD 任务实际必填。支持 `csv/doc/docx/pdf/txt/xls/xlsx`。
+
+### OpenAI-compatible
 
 每个量表配置一个 Dify 应用 API Key，量表对应的大模型、知识库和提示词由 Dify 应用内部配置：
 

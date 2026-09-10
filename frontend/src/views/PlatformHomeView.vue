@@ -1,22 +1,5 @@
 <template>
   <main class="platform-home">
-    <header class="platform-header">
-      <RouterLink class="platform-logo" to="/platform" aria-label="夸克智汇平台首页">
-        <span class="platform-logo__word">Quarkmed</span>
-        <strong>夸克医药</strong>
-      </RouterLink>
-
-      <div class="platform-header__tools">
-        <label class="platform-search">
-          <el-icon><Search /></el-icon>
-          <input v-model="searchText" type="search" placeholder="搜索平台、知识、数据..." />
-        </label>
-        <button class="platform-avatar" aria-label="用户中心" type="button" @click="showUserMessage">
-          <el-icon><User /></el-icon>
-        </button>
-      </div>
-    </header>
-
     <section class="platform-hero" aria-label="平台欢迎区">
       <img src="/platform/home-hero.png" alt="" />
     </section>
@@ -48,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowRight, Search, User } from '@element-plus/icons-vue'
+import { ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -71,10 +54,9 @@ const apps: PlatformApp[] = [
   { name: '市场调研汇总', tone: 'teal', icon: 'ops.svg' },
   { name: '医药BD交易商机', tone: 'orange', icon: 'bd.svg' },
   { name: 'CNS商机挖掘', tone: 'cyan', icon: 'research.svg', route: 'platform-research' },
-  { name: 'sCTMS', tone: 'purple', icon: 'sctms.svg' },
   { name: '药物警戒', tone: 'blue', icon: 'pv.svg' },
-  { name: '临床评估量表', tone: 'purple', icon: 'scale.svg' },
-  { name: '自由定制PPT', tone: 'blue', icon: 'ppt.svg' },
+  { name: '临床评估量表', tone: 'purple', icon: 'scale.svg', route: 'dashboard' },
+  { name: '公司模板库', tone: 'blue', icon: 'ppt.svg' },
   { name: 'Dify AI应用开发', tone: 'blue', icon: 'dify.svg', url: import.meta.env.VITE_DIFY_URL || 'http://localhost:8081' }
 ]
 
@@ -102,44 +84,11 @@ function showUserMessage() {
 
 <style scoped>
 .platform-home {
-  min-height: 100vh;
+  min-height: calc(100vh - 72px);
   overflow-x: hidden;
   background: #fff;
   color: #10245d;
 }
-
-.platform-header {
-  display: flex;
-  height: 80px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 0 clamp(28px, 4vw, 70px);
-  background: rgba(255, 255, 255, .95);
-}
-
-.platform-logo {
-  display: flex;
-  flex-direction: column;
-  color: #10245d;
-  text-decoration: none;
-}
-
-.platform-logo__word {
-  font-family: Arial, "Helvetica Neue", sans-serif;
-  font-size: 35px;
-  font-weight: 700;
-  letter-spacing: -2px;
-  line-height: .9;
-}
-
-.platform-logo strong { margin: 6px 0 0 45px; font-size: 17px; letter-spacing: 1px; }
-.platform-header__tools { display: flex; align-items: center; gap: 28px; }
-.platform-search { display: flex; width: min(465px, 40vw); height: 45px; align-items: center; gap: 12px; padding: 0 18px; border-radius: 24px; background: #edf5ff; color: #7192ca; }
-.platform-search .el-icon { font-size: 22px; }
-.platform-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #234274; font-size: 15px; }
-.platform-search input::placeholder { color: #9cb0d1; }
-.platform-avatar { display: grid; width: 45px; height: 45px; place-items: center; border: 0; border-radius: 50%; background: #edf5ff; color: #3968ad; font-size: 23px; cursor: pointer; }
 
 .platform-hero { height: clamp(208px, 15.5vw, 260px); overflow: hidden; }
 .platform-hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
@@ -205,9 +154,6 @@ function showUserMessage() {
 }
 
 @media (max-width: 680px) {
-  .platform-header { height: 70px; padding: 0 18px; }
-  .platform-logo__word { font-size: 28px; }.platform-logo strong { margin-left: 35px; font-size: 13px; }
-  .platform-header__tools { gap: 10px; }.platform-search { width: 44px; padding: 0 11px; }.platform-search input { display: none; }
   .platform-apps { width: calc(100% - 28px); grid-template-columns: 1fr; gap: 14px; margin-top: 28px; }
   .app-card { min-height: 110px; grid-template-columns: 64px minmax(0, 1fr) 38px; padding-left: 18px; }.app-card__icon { width: 58px; height: 58px; }.app-card__icon img { width: 58px; height: 58px; }.app-card strong { font-size: 17px; }.app-card__arrow { width: 38px; height: 38px; }
   .platform-footer { width: calc(100% - 28px); margin-top: 34px; font-size: 14px; letter-spacing: 1px; }
