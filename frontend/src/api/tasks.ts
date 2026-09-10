@@ -13,10 +13,11 @@ export async function fetchTask(taskId: number) {
   return data
 }
 
-export async function createTask(scaleType: ScaleType, audioFile: File) {
+export async function createTask(scaleType: ScaleType, audioFile: File, doctorTestFile: File) {
   const form = new FormData()
   form.append('scale_type', scaleType)
   form.append('audio_file', audioFile)
+  form.append('doctor_test_file', doctorTestFile)
   const { data } = await apiClient.post<TaskDetail>('/tasks', form)
   return data
 }

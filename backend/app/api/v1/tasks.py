@@ -18,7 +18,7 @@ from app.tasks.worker import process_assessment_task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".opus", ".m4a"}
-ALLOWED_DOCTOR_TEST_EXTENSIONS = {".csv", ".doc", ".docx", ".pdf", ".txt", ".xls", ".xlsx"}
+ALLOWED_DOCTOR_TEST_EXTENSIONS = {".xls", ".xlsx"}
 
 
 def _task_to_list_item(task: AssessmentTask) -> TaskListItem:
@@ -51,14 +51,22 @@ async def create_task(
 ) -> AssessmentTask:
     if (
         settings.dify_protocol.lower() == "workflow"
-        and scale_type == ScaleType.HAMD
-        and settings.dify_workflow_require_doctor_test_file
-        and not doctor_test_file
     ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="当前 Dify Workflow 要求上传医生打分表，请使用 doctor_test_file 字段提交",
-        )
+        if scale_type != ScaleType.HAMD:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="当前远程 Dify Workflow 仅支持 HAMD（HAM-D17），HAMA 和 PHQ-9 暂不可提交",
+            )
+        if settings.dify_workflow_require_doctor_test_file and not doctor_test_file:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="当前 Dify Workflow 要求上传医生打分表，请使用 doctor_test_file 字段提交",
+            )
+        if settings.dify_workflow_require_doctor_test_file and doctor_test_file and not doctor_test_file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="医生打分表不能为空，请重新选择 Excel 文件",
+            )
 
     suffix = Path(audio_file.filename or "").suffix.lower()
     if suffix not in ALLOWED_AUDIO_EXTENSIONS:
@@ -86,7 +94,7 @@ async def create_task(
         doctor_test_suffix = Path(doctor_test_file.filename).suffix.lower()
         if doctor_test_suffix not in ALLOWED_DOCTOR_TEST_EXTENSIONS:
             audio_path.unlink(missing_ok=True)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不支持的医生打分表格式")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="医生打分表仅支持 Excel 格式（.xls 或 .xlsx）")
 
         doctor_test_storage_path = settings.storage_path / "doctor_tests"
         doctor_test_storage_path.mkdir(parents=True, exist_ok=True)

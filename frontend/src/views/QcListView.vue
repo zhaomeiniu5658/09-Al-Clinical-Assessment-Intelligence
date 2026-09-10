@@ -109,6 +109,13 @@
             <template #tip><div class="el-upload__tip">讯飞语音转写支持 wav、flac、opus、m4a、mp3；请上传音频文件，不支持 MP4 视频。</div></template>
           </el-upload>
         </el-form-item>
+        <el-form-item label="医生打分表" prop="doctor_test_file">
+          <el-upload drag :auto-upload="false" :limit="1" :on-change="handleDoctorTestChange" :on-remove="handleDoctorTestRemove" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            <el-icon class="upload-icon"><Document /></el-icon>
+            <div class="el-upload__text">点击或拖拽 Excel 打分表到此处</div>
+            <template #tip><div class="el-upload__tip">请上传医生填写的 Excel 打分表，仅支持 .xls 或 .xlsx 格式。</div></template>
+          </el-upload>
+        </el-form-item>
       </el-form>
       <template #footer><el-button @click="uploadDialogVisible = false">取消</el-button><el-button type="primary" :loading="uploading" @click="submitUpload">提交解析</el-button></template>
     </el-dialog>
@@ -168,9 +175,9 @@ let timer: number | undefined
 const taskStates = new Map<number, TaskStatus>()
 
 const filters = reactive<{ taskCode: string; scaleType: ScaleType | ''; status: TaskStatus | ''; dateRange: string[] }>({ taskCode: '', scaleType: '', status: '', dateRange: [] })
-const uploadForm = reactive<{ scale_type: ScaleType | ''; audio_file: File | null }>({ scale_type: '', audio_file: null })
+const uploadForm = reactive<{ scale_type: ScaleType | ''; audio_file: File | null; doctor_test_file: File | null }>({ scale_type: '', audio_file: null, doctor_test_file: null })
 const reviewForm = reactive({ reviewed_score: 0, review_reason: '', review_comment: '' })
-const uploadRules: FormRules = { scale_type: [{ required: true, message: '请选择量表类型', trigger: 'change' }], audio_file: [{ required: true, message: '请上传音频文件', trigger: 'change' }] }
+const uploadRules: FormRules = { scale_type: [{ required: true, message: '请选择量表类型', trigger: 'change' }], audio_file: [{ required: true, message: '请上传音频文件', trigger: 'change' }], doctor_test_file: [{ required: true, message: '请上传医生打分表', trigger: 'change' }] }
 const reviewRules: FormRules = { reviewed_score: [{ required: true, message: '请输入人工复核评分', trigger: 'blur' }], review_reason: [{ required: true, message: '请填写复核原因', trigger: 'blur' }] }
 const hasRunningTasks = computed(() => tasks.value.some((item) => item.status === 'PENDING' || item.status === 'RUNNING'))
 const filteredTasks = computed(() => tasks.value.filter((item) => {
@@ -187,7 +194,7 @@ async function loadTasks() {
     data.items.forEach((item) => {
       const previousStatus = taskStates.get(item.id)
       if ((previousStatus === 'PENDING' || previousStatus === 'RUNNING') && item.status === 'COMPLETED') {
-        ElNotification({ title: '语音转录分析完成', message: `任务 ${formatTaskCode(item)} 已完成，请在质控列表中查看分析结果。`, type: 'success', duration: 5000 })
+        ElNotification({ title: '转录与 AI 质控完成', message: `任务 ${formatTaskCode(item)} 已完成，请在质控列表中查看分析结果。`, type: 'success', duration: 5000 })
       }
       if ((previousStatus === 'PENDING' || previousStatus === 'RUNNING') && item.status === 'FAILED') {
         ElNotification({ title: '任务分析异常', message: `任务 ${formatTaskCode(item)} 分析失败，请在质控列表中查看详情。`, type: 'error', duration: 6000 })
@@ -216,13 +223,23 @@ function applyFilters() { page.value = 1 }
 function resetFilters() { filters.taskCode = ''; filters.scaleType = ''; filters.status = ''; filters.dateRange = []; page.value = 1 }
 function handleAudioChange(file: UploadFile) { uploadForm.audio_file = file.raw || null }
 function handleAudioRemove() { uploadForm.audio_file = null }
-function resetUpload() { uploadForm.scale_type = ''; uploadForm.audio_file = null; uploadFormRef.value?.resetFields() }
+function handleDoctorTestChange(file: UploadFile) {
+  const raw = file.raw || null
+  if (raw && !['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(raw.type) && !/\.(xls|xlsx)$/i.test(raw.name)) {
+    ElMessage.error('医生打分表仅支持 .xls 或 .xlsx 格式')
+    uploadForm.doctor_test_file = null
+    return
+  }
+  uploadForm.doctor_test_file = raw
+}
+function handleDoctorTestRemove() { uploadForm.doctor_test_file = null }
+function resetUpload() { uploadForm.scale_type = ''; uploadForm.audio_file = null; uploadForm.doctor_test_file = null; uploadFormRef.value?.resetFields() }
 async function submitUpload() {
   await uploadFormRef.value?.validate()
-  if (!uploadForm.scale_type || !uploadForm.audio_file) return
+  if (!uploadForm.scale_type || !uploadForm.audio_file || !uploadForm.doctor_test_file) return
   uploading.value = true
   try {
-    const createdTask = await createTask(uploadForm.scale_type, uploadForm.audio_file)
+    const createdTask = await createTask(uploadForm.scale_type, uploadForm.audio_file, uploadForm.doctor_test_file)
     taskStates.set(createdTask.id, createdTask.status)
     ElNotification({ title: '任务已创建', message: `任务 ${formatTaskCode(createdTask)} 已进入讯飞语音转录分析，请稍后在质控列表查看结果。`, type: 'info', duration: 6000 })
     uploadDialogVisible.value = false

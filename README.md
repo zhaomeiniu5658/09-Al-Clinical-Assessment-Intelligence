@@ -83,7 +83,7 @@ Authorization: Bearer <DIFY_WORKFLOW_API_KEY>
 
 医生打分表会先通过 `/v1/files/upload` 上传，再以 `local_file` 引用传给工作流。API Key 只放在本地 `.env`，不要提交到 Git。
 
-创建任务接口新增可选字段 `doctor_test_file`；在当前远程工作流配置下，该字段对 HAMD 任务实际必填。支持 `csv/doc/docx/pdf/txt/xls/xlsx`。
+创建任务接口新增字段 `doctor_test_file`；在当前远程工作流配置下，该字段对 HAMD 任务实际必填，仅支持 Excel 文件（`.xls` 或 `.xlsx`）。当前远程工作流仅支持 HAMD（HAM-D17）。
 
 ### OpenAI-compatible
 
