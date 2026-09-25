@@ -4,7 +4,6 @@ import QcListView from '../views/QcListView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import TaskDetailView from '../views/TaskDetailView.vue'
 import UsersView from '../views/UsersView.vue'
-import KnowledgeView from '../views/KnowledgeView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import PlatformHomeView from '../views/PlatformHomeView.vue'
 import PlatformLoginView from '../views/PlatformLoginView.vue'
@@ -21,7 +20,6 @@ const router = createRouter({
     { path: '/tasks/:id', name: 'task-detail', component: TaskDetailView, meta: { platformShell: true } },
     { path: '/settings', name: 'settings', component: SettingsView, meta: { platformShell: true } },
     { path: '/users', name: 'users', component: UsersView, meta: { requiresAdmin: true, platformShell: true } },
-    { path: '/knowledge', name: 'knowledge', component: KnowledgeView, meta: { platformShell: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { publicPlatform: true, platformShell: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]

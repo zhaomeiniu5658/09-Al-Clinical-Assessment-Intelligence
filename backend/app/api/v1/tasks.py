@@ -1,3 +1,4 @@
+from contextlib import suppress
 from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
@@ -12,7 +13,8 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.assessment import AssessmentTask, QcResult, ReviewRecord, ReviewStatus, ScaleType, TaskStatus
 from app.models.user import User
-from app.schemas.task import ReviewCreate, TaskDetailResponse, TaskListItem, TaskListResponse
+from app.schemas.task import ItemReviewCreate, ReviewCreate, TaskDetailResponse, TaskListItem, TaskListResponse
+from app.services.doctor_test import parse_doctor_test
 from app.tasks.worker import process_assessment_task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -115,6 +117,24 @@ async def create_task(
         doctor_test_original_name = doctor_test_file.filename
         doctor_test_mime_type = doctor_test_file.content_type
 
+    initial_item_results: list[dict] | None = None
+    initial_doctor_score: float | None = None
+    if doctor_test_path and scale_type == ScaleType.HAMD:
+        try:
+            initial_item_results = parse_doctor_test(doctor_test_path, scale_type)
+            initial_doctor_score = sum(
+                row["doctor_score"]
+                for row in initial_item_results
+                if isinstance(row.get("doctor_score"), int | float)
+            )
+        except Exception as exc:
+            doctor_test_path.unlink(missing_ok=True)
+            audio_path.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"医生打分表解析失败：{exc}",
+            ) from exc
+
     task = AssessmentTask(
         owner_id=current_user.id,
         scale_type=scale_type,
@@ -132,6 +152,14 @@ async def create_task(
     db.add(task)
     db.commit()
     db.refresh(task)
+    if initial_item_results is not None:
+        task.qc_result = QcResult(
+            doctor_score=initial_doctor_score,
+            ai_score=None,
+            item_results=initial_item_results,
+        )
+        db.commit()
+        db.refresh(task)
 
     background_tasks.add_task(process_assessment_task, task.id)
     return task
@@ -191,6 +219,29 @@ def get_audio(
     return FileResponse(path, media_type=task.audio_mime_type, filename=task.audio_original_name)
 
 
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(
+    task_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    task = db.scalar(
+        select(AssessmentTask)
+        .options(joinedload(AssessmentTask.qc_result), joinedload(AssessmentTask.review_record))
+        .where(AssessmentTask.id == task_id, AssessmentTask.owner_id == current_user.id)
+    )
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="任务不存在")
+
+    file_paths = [task.audio_path, task.doctor_test_path]
+    db.delete(task)
+    db.commit()
+    for file_path in file_paths:
+        if file_path:
+            with suppress(FileNotFoundError):
+                Path(file_path).unlink()
+
+
 @router.post("/{task_id}/retry", response_model=TaskDetailResponse)
 def retry_task(
     task_id: int,
@@ -248,6 +299,35 @@ def review_task(
             )
         )
     task.review_status = ReviewStatus.REVIEWED
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+@router.post("/{task_id}/items/{item_index}/review", response_model=TaskDetailResponse)
+def review_task_item(
+    task_id: int,
+    item_index: int,
+    payload: ItemReviewCreate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> AssessmentTask:
+    task = db.scalar(
+        select(AssessmentTask)
+        .options(joinedload(AssessmentTask.qc_result), joinedload(AssessmentTask.review_record))
+        .where(AssessmentTask.id == task_id, AssessmentTask.owner_id == current_user.id)
+    )
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="任务不存在")
+    if not task.qc_result or not task.qc_result.item_results:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="暂无可复核的量表项目")
+    if item_index < 0 or item_index >= len(task.qc_result.item_results):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="量表项目不存在")
+
+    item_results = [dict(item) for item in task.qc_result.item_results]
+    item_results[item_index]["review_score"] = payload.review_score
+    item_results[item_index]["review_opinion"] = payload.review_opinion
+    task.qc_result.item_results = item_results
     db.commit()
     db.refresh(task)
     return task

@@ -27,12 +27,24 @@ export async function retryTask(taskId: number) {
   return data
 }
 
+export async function deleteTask(taskId: number) {
+  await apiClient.delete(`/tasks/${taskId}`)
+}
+
 export async function reviewTask(taskId: number, payload: {
   reviewed_score: number
   review_reason: string
   review_comment?: string
 }) {
   const { data } = await apiClient.post<TaskDetail>(`/tasks/${taskId}/review`, payload)
+  return data
+}
+
+export async function reviewTaskItem(taskId: number, itemIndex: number, payload: {
+  review_score: number
+  review_opinion: string
+}) {
+  const { data } = await apiClient.post<TaskDetail>(`/tasks/${taskId}/items/${itemIndex}/review`, payload)
   return data
 }
 

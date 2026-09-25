@@ -28,7 +28,6 @@
       <section class="work-panel quick-panel">
         <div class="panel-heading"><div><h2>快捷操作</h2><p>进入常用工作流程</p></div></div>
         <RouterLink class="quick-action primary" to="/"><span class="quick-icon"><el-icon><UploadFilled /></el-icon></span><span><strong>新建质控任务</strong><small>上传录音并启动智能分析</small></span><el-icon><ArrowRight /></el-icon></RouterLink>
-        <RouterLink class="quick-action" to="/knowledge"><span class="quick-icon"><el-icon><Collection /></el-icon></span><span><strong>浏览知识库</strong><small>查阅临床评估参考资料</small></span><el-icon><ArrowRight /></el-icon></RouterLink>
       </section>
     </section>
 
@@ -47,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowRight, CircleCheck, Collection, Files, Loading, Refresh, UploadFilled, Warning } from '@element-plus/icons-vue'
+import { ArrowRight, CircleCheck, Files, Loading, Refresh, UploadFilled, Warning } from '@element-plus/icons-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchDashboardOverview, type DashboardOverview, type DashboardRecentTask } from '../api/dashboard'

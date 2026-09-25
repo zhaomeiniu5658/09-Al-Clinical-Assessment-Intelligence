@@ -20,6 +20,8 @@ export interface QcItemResult {
   ai_score: number | null
   ai_scoring_basis: string | null
   difference?: number | null
+  review_score?: number | null
+  review_opinion?: string | null
 }
 
 export interface ReviewRecord {

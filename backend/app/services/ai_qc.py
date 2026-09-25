@@ -1,5 +1,6 @@
 import json
 import mimetypes
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -291,7 +292,14 @@ class DifyOpenAICompatibleQcService:
         for index, row in enumerate(value):
             if not isinstance(row, dict):
                 continue
-            item = cls._first_value(row, "hamd_item", "HAM-D17项目", "name", "project", "项目", "item")
+            item_number = cls._to_float_or_none(
+                cls._first_value(row, "item_number", "item", "项目编号", "编号")
+            )
+            item = cls._first_value(row, "hamd_item", "HAM-D17项目", "name", "project", "项目")
+            item_text = cls._to_text(item)
+            if not item_text and isinstance(item_number, int | float):
+                number = int(item_number)
+                item_text = HAMD17_ITEMS[number - 1] if 1 <= number <= len(HAMD17_ITEMS) else str(number)
             basis = cls._first_value(
                 row,
                 "ai_scoring_basis",
@@ -304,28 +312,27 @@ class DifyOpenAICompatibleQcService:
             difference_reason = cls._to_text(row.get("difference_reason"))
             if difference_reason:
                 basis = f"{cls._to_text(basis) or ''}\n差异原因：{difference_reason}".strip()
-            normalized.append(
-                {
-                    "hamd_item": cls._to_text(item) or (HAMD17_ITEMS[index] if index < len(HAMD17_ITEMS) else ""),
-                    "doctor_score": cls._to_float_or_none(
-                        cls._first_value(
-                            row,
-                            "doctor_score",
-                            "评分员打分",
-                            "rater_score",
-                            "clinician_score",
-                            "医生评分",
-                        )
-                    ),
-                    "ai_score": cls._to_float_or_none(
-                        cls._first_value(row, "ai_score", "AI打分", "ai评分", "标准分")
-                    ),
-                    "ai_scoring_basis": cls._to_text(basis),
-                    "difference": cls._to_float_or_none(
-                        cls._first_value(row, "difference", "差异", "difference_value")
-                    ),
-                }
-            )
+            normalized_row = {
+                "hamd_item": item_text or (HAMD17_ITEMS[index] if index < len(HAMD17_ITEMS) else ""),
+                "doctor_score": cls._to_float_or_none(
+                    cls._first_value(
+                        row,
+                        "doctor_score",
+                        "评分员打分",
+                        "rater_score",
+                        "clinician_score",
+                        "医生评分",
+                    )
+                ),
+                "ai_score": cls._to_float_or_none(
+                    cls._first_value(row, "ai_score", "AI打分", "ai评分", "标准分")
+                ),
+                "ai_scoring_basis": cls._to_text(basis),
+            }
+            difference = cls._to_float_or_none(cls._first_value(row, "difference", "差异", "difference_value"))
+            if difference is not None:
+                normalized_row["difference"] = difference
+            normalized.append(normalized_row)
         return normalized
 
     @classmethod

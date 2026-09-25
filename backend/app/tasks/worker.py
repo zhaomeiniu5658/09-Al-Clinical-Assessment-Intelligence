@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.db.session import SessionLocal
-from app.models.assessment import AssessmentTask, QcResult, TaskStage, TaskStatus
+from app.models.assessment import AssessmentTask, QcResult, ScaleType, TaskStage, TaskStatus
 from app.models.system import XfyunAsrSettings
 from app.services.ai_qc import DifyOpenAICompatibleQcService
 from app.services.doctor_test import parse_doctor_test
@@ -37,7 +37,11 @@ def process_assessment_task(task_id: int) -> None:
             task.error_message = None
             db.commit()
 
-            doctor_items = parse_doctor_test(task.doctor_test_path, task.scale_type) if task.doctor_test_path else []
+            doctor_items = (
+                parse_doctor_test(task.doctor_test_path, task.scale_type)
+                if task.doctor_test_path and task.scale_type == ScaleType.HAMD
+                else []
+            )
             if doctor_items:
                 doctor_total = sum(
                     row["doctor_score"]
@@ -49,6 +53,7 @@ def process_assessment_task(task_id: int) -> None:
                     task.qc_result.item_results = merge_item_results(
                         doctor_items,
                         task.qc_result.item_results or [],
+                        existing_items=task.qc_result.item_results or [],
                     )
                 else:
                     task.qc_result = QcResult(
@@ -67,11 +72,25 @@ def process_assessment_task(task_id: int) -> None:
                 doctor_items or result.item_results,
                 result.item_results,
                 assume_missing_ai_matches=bool(doctor_items),
+                existing_items=task.qc_result.item_results if task.qc_result else None,
             )
             if task.qc_result:
                 qc_result = task.qc_result
-                qc_result.doctor_score = result.doctor_score or qc_result.doctor_score
-                qc_result.ai_score = result.ai_score
+                qc_result.doctor_score = (
+                    qc_result.doctor_score
+                    if doctor_items
+                    else result.doctor_score if result.doctor_score is not None else qc_result.doctor_score
+                )
+                qc_result.ai_score = (
+                    result.ai_score
+                    if result.ai_score is not None
+                    else sum(
+                        row["ai_score"]
+                        for row in merged_items
+                        if isinstance(row.get("ai_score"), int | float)
+                    )
+                    or None
+                )
                 qc_result.scoring_basis = result.scoring_basis
                 qc_result.evidence_analysis = result.evidence_analysis
                 qc_result.error_reason = result.error_reason

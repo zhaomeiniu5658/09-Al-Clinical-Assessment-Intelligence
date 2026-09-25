@@ -63,3 +63,8 @@ class ReviewCreate(BaseModel):
     reviewed_score: float = Field(..., ge=0)
     review_reason: str = Field(..., min_length=1, max_length=2000)
     review_comment: str | None = Field(default=None, max_length=5000)
+
+
+class ItemReviewCreate(BaseModel):
+    review_score: float = Field(..., ge=0)
+    review_opinion: str = Field(..., min_length=1, max_length=2000)

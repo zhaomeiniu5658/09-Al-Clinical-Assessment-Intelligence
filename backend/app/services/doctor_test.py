@@ -100,8 +100,6 @@ def _rows_to_item_results(rows: list[tuple[Any, Any]]) -> list[dict[str, Any]]:
         item_number = explicit_number or expected_number
         if item_number < 1 or item_number > len(HAMD17_ITEMS):
             break
-        if item_number != expected_number:
-            item_number = expected_number
 
         name = item_text or HAMD17_ITEMS[item_number - 1]
         if _item_number(name) is None:
@@ -115,7 +113,7 @@ def _rows_to_item_results(rows: list[tuple[Any, Any]]) -> list[dict[str, Any]]:
                 "difference": None,
             }
         )
-        expected_number += 1
+        expected_number = item_number + 1
         if expected_number > len(HAMD17_ITEMS):
             break
 

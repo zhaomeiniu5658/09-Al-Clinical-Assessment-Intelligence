@@ -19,10 +19,6 @@
             <el-icon><DocumentChecked /></el-icon>
             <span>质控任务</span>
           </RouterLink>
-          <RouterLink class="nav-item" :class="{ active: route.name === 'knowledge' }" to="/knowledge">
-            <el-icon><Collection /></el-icon>
-            <span>知识库</span>
-          </RouterLink>
           <RouterLink v-if="auth.user?.is_admin" class="nav-item" :class="{ active: route.name === 'users' }" to="/users">
             <el-icon><UserFilled /></el-icon>
             <span>用户管理</span>
@@ -53,7 +49,6 @@
               <el-badge is-dot type="danger"><el-icon :size="20"><Bell /></el-icon></el-badge>
             </el-button>
             <el-button circle text aria-label="帮助"><el-icon :size="20"><QuestionFilled /></el-icon></el-button>
-            <el-button circle text aria-label="退出登录" @click="logout"><el-icon :size="19"><SwitchButton /></el-icon></el-button>
           </div>
         </header>
         <main class="page-canvas"><slot /></main>
@@ -65,24 +60,20 @@
 <script setup lang="ts">
 import {
   Bell,
-  Collection,
   DocumentChecked,
   Expand,
   Fold,
   Grid,
   QuestionFilled,
   Setting,
-  SwitchButton,
   UserFilled
 } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const props = defineProps<{ title: string; subtitle: string; platformPage?: boolean }>()
 
-const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const sidebarCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -91,11 +82,6 @@ const platformPage = props.platformPage ?? Boolean(route.meta.platformShell)
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
   localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed.value))
-}
-
-function logout() {
-  auth.logout()
-  router.replace('/login')
 }
 
 </script>

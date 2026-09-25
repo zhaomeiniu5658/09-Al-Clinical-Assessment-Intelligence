@@ -72,7 +72,7 @@
           <template #default="{ row }">
             <div class="row-actions">
               <el-button link type="primary" @click="openDetail(row.id)">详情</el-button>
-              <el-button link type="primary" :disabled="row.ai_score === null" @click="openReview(row.id)">审核</el-button>
+              <el-button link type="primary" @click="openReview(row.id)">审核</el-button>
               <el-dropdown trigger="click">
                 <el-button link class="more-button" aria-label="更多操作"><el-icon><MoreFilled /></el-icon></el-button>
                 <template #dropdown>
@@ -80,6 +80,7 @@
                     <el-dropdown-item :icon="Document" @click="openTranscript(row.id)">转录文本</el-dropdown-item>
                     <el-dropdown-item :icon="DataAnalysis" @click="openAiScore(row.id)">AI评分</el-dropdown-item>
                     <el-dropdown-item v-if="row.status === 'FAILED'" :icon="RefreshRight" @click="handleRetry(row.id)">重新尝试</el-dropdown-item>
+                    <el-dropdown-item class="danger-menu-item" :icon="Delete" @click="handleDelete(row)">删除</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -103,14 +104,14 @@
           </el-select>
         </el-form-item>
         <el-form-item label="医患对话音频" prop="audio_file">
-          <el-upload drag :auto-upload="false" :limit="1" :on-change="handleAudioChange" :on-remove="handleAudioRemove" accept=".mp3,.wav,.flac,.opus,.m4a,audio/mpeg,audio/wav,audio/flac,audio/ogg">
+          <el-upload class="task-upload" drag :auto-upload="false" :limit="1" :on-change="handleAudioChange" :on-remove="handleAudioRemove" accept=".mp3,.wav,.flac,.opus,.m4a,audio/mpeg,audio/wav,audio/flac,audio/ogg">
             <el-icon class="upload-icon"><UploadFilled /></el-icon>
             <div class="el-upload__text">点击或拖拽音频到此处</div>
             <template #tip><div class="el-upload__tip">讯飞语音转写支持 wav、flac、opus、m4a、mp3；请上传音频文件，不支持 MP4 视频。</div></template>
           </el-upload>
         </el-form-item>
         <el-form-item label="医生打分表" prop="doctor_test_file">
-          <el-upload drag :auto-upload="false" :limit="1" :on-change="handleDoctorTestChange" :on-remove="handleDoctorTestRemove" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          <el-upload class="task-upload" drag :auto-upload="false" :limit="1" :on-change="handleDoctorTestChange" :on-remove="handleDoctorTestRemove" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
             <el-icon class="upload-icon"><Document /></el-icon>
             <div class="el-upload__text">点击或拖拽 Excel 打分表到此处</div>
             <template #tip><div class="el-upload__tip">请上传医生填写的 Excel 打分表，仅支持 .xls 或 .xlsx 格式。</div></template>
@@ -130,36 +131,22 @@
       <el-empty v-else description="暂无 AI 质控结果" />
     </el-dialog>
 
-    <el-dialog v-model="reviewDialogVisible" title="人工审核" width="860px">
-      <template v-if="selectedTask">
-        <div class="review-layout">
-          <section class="transcript-preview"><span>转录文本</span><p>{{ formatTranscript(selectedTask.asr_text || '暂无转录文本') }}</p></section>
-          <el-form ref="reviewFormRef" :model="reviewForm" :rules="reviewRules" label-position="top">
-            <el-form-item label="人工复核评分" prop="reviewed_score"><el-input-number v-model="reviewForm.reviewed_score" :min="0" :max="100" :precision="1" class="full-width" /></el-form-item>
-            <el-form-item label="复核原因" prop="review_reason"><el-input v-model="reviewForm.review_reason" type="textarea" :rows="4" /></el-form-item>
-            <el-form-item label="审核意见"><el-input v-model="reviewForm.review_comment" type="textarea" :rows="3" /></el-form-item>
-          </el-form>
-        </div>
-      </template>
-      <template #footer><el-button @click="reviewDialogVisible = false">取消</el-button><el-button type="primary" :loading="reviewing" @click="submitReview">提交审核</el-button></template>
-    </el-dialog>
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { DataAnalysis, Document, MoreFilled, Plus, Refresh, RefreshLeft, RefreshRight, Search, UploadFilled } from '@element-plus/icons-vue'
+import { DataAnalysis, Delete, Document, MoreFilled, Plus, Refresh, RefreshLeft, RefreshRight, Search, UploadFilled } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, UploadFile } from 'element-plus'
-import { ElMessage, ElNotification } from 'element-plus'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { createTask, fetchTask, fetchTasks, retryTask, reviewTask } from '../api/tasks'
+import { createTask, deleteTask, fetchTask, fetchTasks, retryTask } from '../api/tasks'
 import AppShell from '../components/AppShell.vue'
 import type { ScaleType, TaskDetail, TaskListItem, TaskStage, TaskStatus } from '../types/task'
 
 const router = useRouter()
 const loading = ref(false)
 const uploading = ref(false)
-const reviewing = ref(false)
 const tasks = ref<TaskListItem[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -168,17 +155,14 @@ const selectedTask = ref<TaskDetail | null>(null)
 const uploadDialogVisible = ref(false)
 const transcriptDialogVisible = ref(false)
 const aiDialogVisible = ref(false)
-const reviewDialogVisible = ref(false)
 const uploadFormRef = ref<FormInstance>()
-const reviewFormRef = ref<FormInstance>()
 let timer: number | undefined
 const taskStates = new Map<number, TaskStatus>()
+const deletingTaskId = ref<number | null>(null)
 
 const filters = reactive<{ taskCode: string; scaleType: ScaleType | ''; status: TaskStatus | ''; dateRange: string[] }>({ taskCode: '', scaleType: '', status: '', dateRange: [] })
-const uploadForm = reactive<{ scale_type: ScaleType | ''; audio_file: File | null; doctor_test_file: File | null }>({ scale_type: '', audio_file: null, doctor_test_file: null })
-const reviewForm = reactive({ reviewed_score: 0, review_reason: '', review_comment: '' })
+const uploadForm = reactive<{ scale_type: ScaleType | ''; audio_file: File | null; doctor_test_file: File | null }>({ scale_type: 'HAMD', audio_file: null, doctor_test_file: null })
 const uploadRules: FormRules = { scale_type: [{ required: true, message: '请选择量表类型', trigger: 'change' }], audio_file: [{ required: true, message: '请上传音频文件', trigger: 'change' }], doctor_test_file: [{ required: true, message: '请上传医生打分表', trigger: 'change' }] }
-const reviewRules: FormRules = { reviewed_score: [{ required: true, message: '请输入人工复核评分', trigger: 'blur' }], review_reason: [{ required: true, message: '请填写复核原因', trigger: 'blur' }] }
 const hasRunningTasks = computed(() => tasks.value.some((item) => item.status === 'PENDING' || item.status === 'RUNNING'))
 const filteredTasks = computed(() => tasks.value.filter((item) => {
   const taskCode = formatTaskCode(item).toLowerCase()
@@ -211,14 +195,7 @@ async function loadSelected(taskId: number) { selectedTask.value = await fetchTa
 function openDetail(taskId: number) { router.push({ name: 'task-detail', params: { id: taskId } }) }
 async function openTranscript(taskId: number) { await loadSelected(taskId); transcriptDialogVisible.value = true }
 async function openAiScore(taskId: number) { await loadSelected(taskId); aiDialogVisible.value = true }
-async function openReview(taskId: number) {
-  await loadSelected(taskId)
-  if (!selectedTask.value?.qc_result) { ElMessage.warning('AI 质控完成后才能审核'); return }
-  reviewForm.reviewed_score = selectedTask.value.review_record?.reviewed_score ?? selectedTask.value.qc_result.ai_score ?? 0
-  reviewForm.review_reason = selectedTask.value.review_record?.review_reason ?? ''
-  reviewForm.review_comment = selectedTask.value.review_record?.review_comment ?? ''
-  reviewDialogVisible.value = true
-}
+function openReview(taskId: number) { openDetail(taskId) }
 function applyFilters() { page.value = 1 }
 function resetFilters() { filters.taskCode = ''; filters.scaleType = ''; filters.status = ''; filters.dateRange = []; page.value = 1 }
 function handleAudioChange(file: UploadFile) { uploadForm.audio_file = file.raw || null }
@@ -233,7 +210,7 @@ function handleDoctorTestChange(file: UploadFile) {
   uploadForm.doctor_test_file = raw
 }
 function handleDoctorTestRemove() { uploadForm.doctor_test_file = null }
-function resetUpload() { uploadForm.scale_type = ''; uploadForm.audio_file = null; uploadForm.doctor_test_file = null; uploadFormRef.value?.resetFields() }
+function resetUpload() { uploadForm.scale_type = 'HAMD'; uploadForm.audio_file = null; uploadForm.doctor_test_file = null; uploadFormRef.value?.resetFields() }
 async function submitUpload() {
   await uploadFormRef.value?.validate()
   if (!uploadForm.scale_type || !uploadForm.audio_file || !uploadForm.doctor_test_file) return
@@ -247,7 +224,27 @@ async function submitUpload() {
   } finally { uploading.value = false }
 }
 async function handleRetry(taskId: number) { await retryTask(taskId); ElMessage.success('已重新投递任务'); await loadTasks() }
-async function submitReview() { if (!selectedTask.value) return; await reviewFormRef.value?.validate(); reviewing.value = true; try { await reviewTask(selectedTask.value.id, { reviewed_score: reviewForm.reviewed_score, review_reason: reviewForm.review_reason, review_comment: reviewForm.review_comment || undefined }); ElMessage.success('审核已提交'); reviewDialogVisible.value = false; await loadTasks() } finally { reviewing.value = false } }
+async function handleDelete(task: TaskListItem) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除任务“${formatTaskCode(task)}”吗？删除后无法恢复。`,
+      '删除任务',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+
+  deletingTaskId.value = task.id
+  try {
+    await deleteTask(task.id)
+    ElMessage.success('任务已删除')
+    if (filteredTasks.value.length === 1 && page.value > 1) page.value -= 1
+    await loadTasks()
+  } finally {
+    deletingTaskId.value = null
+  }
+}
 function asrStatusText(row: TaskListItem) { if (row.status === 'FAILED' && row.stage === 'ASR') return '识别失败'; if (row.status === 'RUNNING' && row.stage === 'ASR') return '识别中'; if (row.status === 'PENDING') return '等待中'; return row.asr_text ? '已转录' : '待处理' }
 function taskStatusText(status: TaskStatus, stage: TaskStage | null) { if (status === 'RUNNING' && stage === 'ASR') return '转录中'; if (status === 'RUNNING' && stage === 'QC') return '质控中'; return { PENDING: '待处理', RUNNING: '处理中', COMPLETED: '已完成', FAILED: '异常' }[status] }
 function asrStatusClass(row: TaskListItem) { return row.status === 'FAILED' && row.stage === 'ASR' ? 'danger' : row.status === 'RUNNING' && row.stage === 'ASR' ? 'processing' : row.asr_text ? 'success' : 'pending' }
@@ -271,14 +268,15 @@ onBeforeUnmount(() => { if (timer) window.clearInterval(timer) })
 <style scoped>
 .filter-panel, .list-panel { min-width: 0; border: 1px solid #eff1f6; border-radius: 8px; background: #fff; box-shadow: 0 4px 16px rgba(15, 23, 42, .035); }
 .filter-panel { padding: 22px 30px; }
-.filter-form { display: grid; min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 32px; align-items: end; }
-.filter-form :deep(.el-form-item) { min-width: 0; margin-bottom: 0; }.filter-form :deep(.el-form-item__label) { padding-bottom: 8px; color: #374151; font-size: 14px; }.filter-form :deep(.el-date-editor) { width: 100%; min-width: 0; }.date-filter { grid-column: span 2; }.filter-actions { display: flex; justify-content: flex-end; gap: 10px; padding-bottom: 0; }
+.filter-form { display: grid; min-width: 0; grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(270px, 1.45fr) auto; column-gap: 28px; align-items: end; }
+.filter-form :deep(.el-form-item) { min-width: 0; margin-bottom: 0; }.filter-form :deep(.el-form-item__label) { padding-bottom: 8px; color: #374151; font-size: 14px; }.filter-form :deep(.el-date-editor) { width: 100%; min-width: 0; }.date-filter { grid-column: auto; }.filter-actions { display: flex; justify-content: flex-end; gap: 10px; padding-bottom: 0; white-space: nowrap; }
 .list-panel { margin-top: 24px; overflow: hidden; }.list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 22px 18px; }.list-toolbar strong { color: #374151; font-size: 15px; }.list-toolbar span { margin-left: 12px; color: #9ca3af; font-size: 12px; }.list-toolbar-actions { display: flex; gap: 10px; }
 .task-table { width: 100%; }.task-table :deep(.el-table__header-wrapper th.el-table__cell) { height: 48px; background: #fafbff; color: #64748b; font-size: 13px; font-weight: 500; }.task-table :deep(.el-table__cell) { border-bottom-color: #f1f5f9; }.task-table :deep(.el-table__row td.el-table__cell) { height: 58px; color: #4b5563; font-size: 14px; }.task-table :deep(.el-table__row:hover > td.el-table__cell) { background: #f8faff; }.task-code { color: #1f2937; font-weight: 600; }.scale-label { color: #55647b; font-weight: 500; }.time-value { color: #64748b; white-space: nowrap; }
-.status-badge, .review-badge, .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 56px; padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; }.status-badge.success, .review-badge.reviewed { background: #ecfdf5; color: #10b981; }.status-badge.processing { background: #eff6ff; color: #3b82f6; }.status-badge.pending, .review-badge.unreviewed { background: #fffbeb; color: #d97706; }.status-badge.danger { background: #fef2f2; color: #dc2626; }.score-badge.excellent { background: #ecfdf5; color: #10b981; }.score-badge.good { background: #eff6ff; color: #3b82f6; }.score-badge.average { background: #fffbeb; color: #f59e0b; }.score-badge.poor { background: #fef2f2; color: #ef4444; }.row-actions { display: flex; align-items: center; gap: 4px; }.more-button { padding: 4px; color: #64748b; }
+.status-badge, .review-badge, .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 56px; padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; }.status-badge.success, .review-badge.reviewed { background: #ecfdf5; color: #10b981; }.status-badge.processing { background: #eff6ff; color: #3b82f6; }.status-badge.pending, .review-badge.unreviewed { background: #fffbeb; color: #d97706; }.status-badge.danger { background: #fef2f2; color: #dc2626; }.score-badge.excellent { background: #ecfdf5; color: #10b981; }.score-badge.good { background: #eff6ff; color: #3b82f6; }.score-badge.average { background: #fffbeb; color: #f59e0b; }.score-badge.poor { background: #fef2f2; color: #ef4444; }.row-actions { display: flex; align-items: center; gap: 4px; }.more-button { padding: 4px; color: #64748b; }.danger-menu-item { color: #ef4444; }.danger-menu-item:hover { color: #dc2626; background: #fef2f2; }
 .pager { display: flex; align-items: center; justify-content: flex-end; gap: 20px; min-height: 72px; padding: 14px 22px; border-top: 1px solid #f1f5f9; color: #4b5563; font-size: 14px; }.pager :deep(.el-pager li.is-active) { background: #6366f1; color: #fff; }.pager :deep(.el-pager li), .pager :deep(.btn-prev), .pager :deep(.btn-next) { border: 1px solid #e5e7eb; border-radius: 7px; }
-.upload-icon { color: #6366f1; font-size: 36px; }.dialog-score-row { display: flex; gap: 32px; padding: 14px 16px; border-radius: 8px; background: #f8faff; color: #64748b; font-size: 14px; }.dialog-score-row b { margin-left: 8px; color: #252f43; font-size: 18px; }.analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }.analysis-grid section, .transcript-preview { min-height: 120px; padding: 15px; border: 1px solid #e8ebf2; border-radius: 8px; background: #fafbfc; }.analysis-grid h3, .analysis-grid p, .transcript-preview p { margin: 0; }.analysis-grid h3, .transcript-preview > span { display: block; margin-bottom: 8px; color: #374151; font-size: 14px; }.analysis-grid p, .transcript-preview p { color: #667085; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }.review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 20px; }.transcript-preview { max-height: 360px; overflow: auto; }
+.detail-preview { display: flex; flex-direction: column; gap: 18px; }.detail-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px; border: 1px solid #e8ebf2; border-radius: 8px; background: #fafbff; }.detail-summary span, .readonly-section > h3, .review-edit-panel > h3 { display: block; color: #8a94a6; font-size: 12px; font-weight: 500; }.detail-summary strong { display: block; margin-top: 7px; overflow: hidden; color: #374151; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }.detail-error { margin-top: -6px; }.readonly-section > h3, .review-edit-panel > h3 { margin: 0 0 10px; color: #374151; font-size: 14px; }.detail-item-table { margin-top: 14px; }.detail-item-table :deep(.el-table__header th) { background: #f7f8fc; color: #4c5b72; font-weight: 600; }.detail-item-table :deep(.el-table__cell) { vertical-align: top; }.detail-item-table :deep(.cell) { overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.65; word-break: break-word; }.readonly-transcript { max-height: 220px; overflow: auto; margin: 0; padding: 15px; border: 1px solid #e8ebf2; border-radius: 8px; background: #fafbfc; color: #667085; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }.review-edit-panel { padding: 16px; border: 1px solid #e6e9ff; border-radius: 8px; background: #fafbff; }.review-edit-panel .review-form { margin-top: 0; }.review-item-name { margin: 0 0 16px; padding: 10px 12px; border-radius: 7px; background: #f8faff; color: #4c5b72; font-size: 13px; line-height: 1.6; }.review-form { max-width: 680px; margin-top: 18px; }.compact-review-form { max-width: none; margin-top: 0; }
+.upload-icon { color: #6366f1; font-size: 36px; }.task-upload, .task-upload :deep(.el-upload), .task-upload :deep(.el-upload-dragger) { width: 100%; }.task-upload :deep(.el-upload-dragger) { box-sizing: border-box; height: 145px; padding: 18px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }.task-upload :deep(.el-upload__text) { line-height: 1.5; }.task-upload :deep(.el-upload__tip) { margin-top: 8px; }.dialog-score-row { display: flex; gap: 32px; padding: 14px 16px; border-radius: 8px; background: #f8faff; color: #64748b; font-size: 14px; }.dialog-score-row b { margin-left: 8px; color: #252f43; font-size: 18px; }.analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }.analysis-grid section, .transcript-preview { min-height: 120px; padding: 15px; border: 1px solid #e8ebf2; border-radius: 8px; background: #fafbfc; }.analysis-grid h3, .analysis-grid p, .transcript-preview p { margin: 0; }.analysis-grid h3, .transcript-preview > span { display: block; margin-bottom: 8px; color: #374151; font-size: 14px; }.analysis-grid p, .transcript-preview p { color: #667085; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }.review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 20px; }.transcript-preview { max-height: 360px; overflow: auto; }
 .generated-task-note { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 21px; padding: 12px 14px; border: 1px solid #e6e9ff; border-radius: 8px; background: #f8f9ff; }.generated-task-label { color: #64748b; font-size: 13px; }.generated-task-value { color: #9ca3af; font-size: 13px; }.generated-task-value span { display: inline-flex; margin-left: 8px; padding: 3px 7px; border-radius: 5px; background: #eef0ff; color: #6366f1; font-size: 11px; }
 @media (max-width: 1120px) { .filter-form { grid-template-columns: repeat(2, minmax(180px, 1fr)); }.date-filter { grid-column: auto; } }
-@media (max-width: 720px) { .filter-panel { padding: 18px; }.filter-form { grid-template-columns: 1fr; gap: 12px; }.filter-actions { justify-content: flex-start; }.list-toolbar { align-items: flex-start; flex-direction: column; }.list-toolbar span { display: block; margin: 5px 0 0; }.pager { align-items: flex-end; flex-direction: column; }.analysis-grid, .review-layout { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .filter-panel { padding: 18px; }.filter-form { grid-template-columns: 1fr; gap: 12px; }.filter-actions { justify-content: flex-start; }.list-toolbar { align-items: flex-start; flex-direction: column; }.list-toolbar span { display: block; margin: 5px 0 0; }.pager { align-items: flex-end; flex-direction: column; }.analysis-grid, .review-layout, .detail-summary { grid-template-columns: 1fr; } }
 </style>
